@@ -9,14 +9,22 @@ use Fcntl ':mode';
 #
 
 # Global version string
-my $version = "2.02";
-my $date = "May 05 2010";
+my $version = "2.03";
+my $date = "Aug 30 2010";
 
 # Program's canonical name
 my $this = basename($0);
 
 #
 # History
+#
+# 2.03  30 Aug 2010  stuartm
+#
+# The bare-word directory handle in find() causes warnings on newer
+#   versions of perl. This appears to be because the bare-word handle
+#   is not protected from recursion, where local variables are simply
+#   shadowed. Changed from a bare-word to a local variable, and all is
+#   happy again.
 #
 # 2.02  05 May 2010  stuartm
 #
@@ -49,15 +57,16 @@ my $this = basename($0);
 # find(1) rewritten in perl
 sub find {
   my $dir = shift;
+  my $dir_h;
   my $fullpath;
   my @files;
   my @subfiles;
 
-  if (!(opendir DIR, $dir)) {
+  if (!(opendir $dir_h, $dir)) {
     warn "$this: Error: Couldn't open '$dir'\n";
     die "$this: Error: $!\n";
   }
-  for (readdir DIR) {
+  for (readdir $dir_h) {
     if (/^\.\.?$/) {
       next;
     }
@@ -70,7 +79,7 @@ sub find {
       }
     }
   }
-  closedir DIR;
+  closedir $dir_h;
 
   return @files;
 }
