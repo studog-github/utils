@@ -9,14 +9,32 @@ use Fcntl ':mode';
 #
 
 # Global version string
-my $version = "2.03";
-my $date = "Aug 30 2010";
+my $version = "2.04";
+my $date = "Jan 03 2017";
 
 # Program's canonical name
 my $this = basename($0);
 
 #
 # History
+#
+# 2.04  03 Jan 2017  stuartm
+#
+# Discovered a long-standing bug in the directory entry comparison code. When an
+#   entry has changed types (say a link has become a file as a result of a copy
+#   operation) this is reported but then the entries are attemped to be
+#   compared anyway. The ttos() call has changed the numeric type to a string
+#   type and that causes perl to throw an 'Argument "file" isn't numeric in
+#   numeric eq' error.
+#   I must have reordered this code at one point and failed to account for the
+#   ttos() call changing the variable; probably inserted the permissions check
+#   into a large if/elif construct and broke out the top if into its own case.
+#   Added a flag to skip comparing if the types are different. The code is more
+#   elegant if its reordered to do the permissions check first, then the types
+#   check and compares as a single large if/else block, but, the output reads
+#   less well for the user; they'd see the permssions output first, then the
+#   type change which is a backwards in my opinion.
+# Typo: tricker => trickier
 #
 # 2.03  30 Aug 2010  stuartm
 #
@@ -131,7 +149,7 @@ sub esc {
       #
       $_[0] =~ s/'/\\'/g;
       #
-      # This one's tricker:
+      # This one's trickier:
       # (             - make a capture/group
       #  (?:          - make a group without making a capture
       #     [^'\\]    - match a class consisting of *not* a single
@@ -163,6 +181,7 @@ sub esc {
 
 my ($tree1, @files1, $path1, $type1, $perm1, $link1);
 my ($tree2, @files2, $path2, $type2, $perm2, $link2);
+my $skip_compare;
 
 while (@ARGV) {
   $_ = shift;
@@ -219,6 +238,9 @@ while (@files1 && @files2) {
       $type2 = ttos($type2);
       print "Types differ: $files2[0]: In $tree1: $type1; " .
                                                         "In $tree2: $type2\n";
+      $skip_compare = 1;
+    } else {
+      $skip_compare = 0;
     }
     if ($perm1 != $perm2) {
       $perm1 = sprintf("%o", $perm1);
@@ -226,18 +248,20 @@ while (@files1 && @files2) {
       print "Perms differ: $files2[0]: In $tree1: $perm1; " .
                                                       "In $tree2: $perm2\n";
     }
-    if ($type2 == S_IFLNK) {
-      $link1 = readlink("$tree1/$files1[0]");
-      $link2 = readlink("$tree2/$files2[0]");
-      if ($link1 ne $link2) {
-        print "Links differ: $files2[0]: In $tree1: $link1; " .
+    if (!$skip_compare) {
+      if ($type2 == S_IFLNK) {
+        $link1 = readlink("$tree1/$files1[0]");
+        $link2 = readlink("$tree2/$files2[0]");
+        if ($link1 ne $link2) {
+          print "Links differ: $files2[0]: In $tree1: $link1; " .
                                                         "In $tree2: $link2\n";
-      }
-    } elsif ($type2 == S_IFREG) {
-      esc $path1 = "$tree1/$files1[0]";
-      esc $path2 = "$tree2/$files2[0]";
-      for (`diff -aup $path1 $path2`) {
-        print;
+        }
+      } elsif ($type2 == S_IFREG) {
+        esc $path1 = "$tree1/$files1[0]";
+        esc $path2 = "$tree2/$files2[0]";
+        for (`diff -aupb $path1 $path2`) {
+          print;
+        }
       }
     }
     shift @files1;
