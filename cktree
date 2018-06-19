@@ -9,14 +9,18 @@ use Fcntl ':mode';
 #
 
 # Global version string
-my $version = "2.04";
-my $date = "Jan 03 2017";
+my $version = "2.05";
+my $date = "Jun 19 2018";
 
 # Program's canonical name
 my $this = basename($0);
 
 #
 # History
+#
+# 2.05  19 Jun 2018  stuartm
+#
+# Errors now properly sent to stderr instead of stdout.
 #
 # 2.04  03 Jan 2017  stuartm
 #
@@ -33,7 +37,7 @@ my $this = basename($0);
 #   elegant if its reordered to do the permissions check first, then the types
 #   check and compares as a single large if/else block, but, the output reads
 #   less well for the user; they'd see the permssions output first, then the
-#   type change which is a backwards in my opinion.
+#   type change which is backwards in my opinion.
 # Typo: tricker => trickier
 #
 # 2.03  30 Aug 2010  stuartm
@@ -199,22 +203,22 @@ while (@ARGV) {
   } elsif (!defined($tree2)) {
     { local $/ = "/"; chomp($tree2 = $_); }
   } else {
-    print "$this: Error: Bad option '$_'.\n";
+    warn "$this: Error: Bad option '$_'.\n";
     die "'$this -h' for help.\n";
   }
 }
 
 if (!defined($tree1)) {
-  print "$this: Error: Missing argument 'tree1'\n";
+  warn "$this: Error: Missing argument 'tree1'\n";
   die "'$this -h' for help.\n";
 } elsif (!defined($tree2)) {
-  print "$this: Error: Missing argument 'tree2'\n";
+  warn "$this: Error: Missing argument 'tree2'\n";
   die "'$this -h' for help.\n";
 } elsif (! -d $tree1) {
-  print "$this: Error: '$tree1' not a directory\n";
+  warn "$this: Error: '$tree1' not a directory\n";
   die "'$this -h' for help.\n";
 } elsif (! -d $tree2) {
-  print "$this: Error: '$tree2' not a directory\n";
+  warn "$this: Error: '$tree2' not a directory\n";
   die "'$this -h' for help.\n";
 }
 
