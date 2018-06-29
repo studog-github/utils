@@ -2,15 +2,19 @@ A quick list of direct tracking links, for when you have to construct one
 manually from a tracking number.
 
 UPS:
-https://wwwapps.ups.com/tracking/tracking.cgi?tracknum=
+https://wwwapps.ups.com/tracking/tracking.cgi?tracknum=<num>
 
-Fedex:
+Fedex: (unconfirmed)
+"http://www.fedex.com/Tracking?cntry_code=us&tracknumbers="& {!Tracking__c} ,"Track "& {!Name} &" - "&{!SerialNumber}
 
-USPS:
+USPS: (unconfirmed)
+"http://trkcnfrm1.smi.usps.com/PTSInternetWeb/InterLabelInquiry.do?origTrackNum="& {!Tracking__c} ,"Track "& {!Name} &" - "&{!SerialNumber}
 
-CP:
+Canada Post: (unconfirmed)
 
-DHL:
+DHL: (unconfirmed)
+"http://track.dhl-usa.com/TrackByNbr.asp?ShipmentNumber="& {!Tracking__c} ,"Track "& {!Name} &" - "&{!SerialNumber}
 
-Purolator:
-
+Purolator: (unconfirmed)
+"https://www.purolator.com/purolator/ship-track/="& {!Tracking__c} ,"Track "& {!Name} &" - "&{!SerialNumber}
+http://www.purolator.com/purolator/ship-track/tracking-details.page?pin="& Tracking_Number__c
