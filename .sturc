@@ -1,0 +1,324 @@
+# WARNING!
+# bash sets history state immediately when HISTSIZE et al are set. Therefore it
+# is not sufficient to override these variables, you must comment out previous
+# occurrences of them.
+# What was happening was on boot .bashrc would set the defaults, immediately
+# configure the state including truncating the .bash_history file to the default
+# size, then use my new history values. This effectively meant I wasn't getting
+# unlimited history like I wanted, just the default amount of history. :-(
+#
+# All the history!
+export HISTSIZE=-1
+export HISTFILESIZE=-1
+#export HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S  "
+export HISTTIMEFORMAT="$(tput setaf 6)%F %T$(tput sgr0)  "
+
+# Hack to make one terminal's history immediately avilable to other terminals
+# append to history file, clear local history, reread history from file
+#export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
+#export PROMPT_COMMAND='export PS1=$(gitprompt.pl)'
+
+# Turn off flow control; ctrl-s and ctrl-q won't stop/start output anymore, but bash's forward
+# history search ctrl-s will work
+stty -ixon
+
+###if [ -n "$DISPLAY" ] && [ "$TERM" == "xterm" ]; then
+###   export TERM=gnome-256color
+###   export COLORTERM=gnome-256color
+###   if [ -e $HOME/.dir_colors/dircolors ]; then
+###      eval $(dircolors -b $HOME/.dir_colors/dircolors)
+###   fi
+###fi
+
+# Fix Ubuntu security holes
+# Affected: 14.04 16.04 18.04
+PATH=${PATH//$HOME\/bin:}
+if [ -d "$HOME/bin" ] ; then
+    PATH+=":$HOME/bin"
+fi
+PATH=${PATH//$HOME\/.local\/bin:}
+if [ -d "$HOME/.local/bin" ]; then
+    PATH+=":$HOME/.local/bin"
+fi
+PATH+=":$HOME/work/Knect/TI/cg_xml/bin"
+PATH+=":$HOME/work/Knect/TI/cg_xml/utils"
+PATH+=":/opt/ti/ccsv6/tools/compiler/ti-cgt-msp430_16.6.0.STS/bin"
+PATH+=":/opt/android-studio/bin"
+export PATH
+export LANG="C"
+export LANGUAGE="C"
+export EDITOR=vim
+export VISUAL=vim
+
+alias d='ls -aCF'
+alias dir='ls -alF'
+alias ddir='ls -alFd'
+alias dirs='ls -alF --color=always | grep --color=never "^d"'
+alias prune='rm -rf'
+alias cls='clear'
+alias spath='echo $PATH | tr : "\n"'
+alias abspath='readlink -f'
+alias svim='sudo vim'
+alias gitk='gitk --all &'
+alias gitr='cd $(git root)'
+alias tree='/usr/bin/tree -a'
+# --use-gl=osmesa is a workaround to prevent Chrome 68 from spamming syslog with
+# Aug 22 07:21:40 L247 org.gnome.Shell.desktop[3587]: [3958:3958:0822/072140.780496:ERROR:gl_surface_presentation_helper.cc(115)] GetVSyncParametersIfAvailable() failed!
+# messages. The actual value isn't important, as long as it prevents whatever the existing default is from being used.
+# Chrome 69 apparently has a fix for this, see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=901831
+alias chrome='/opt/google/chrome/chrome --use-gl=osmesa'
+alias chromenw='/opt/google/chrome/chrome --use-gl=osmesa --new-window'
+alias curldl='curl -OJL'
+alias studio='studio.sh'
+alias smu0='sudo minicom -D /dev/ttyUSB0'
+alias smu1='sudo minicom -D /dev/ttyUSB1'
+
+alias oldw='cd $HOME/old-sda/$HOME/work'
+alias oldp='cd $HOME/old-sda/$HOME/personal'
+
+# Work around a bug in bash completion where 'time svn cleanup <tab>' causes an infinite loop of
+# bash: compopt: -o: option requires an argument
+# compopt: usage: compopt [-o|+o option] [-DE] [name ...]
+# What's more fun is there's no documentation on what this actually does; I *guess* that it turns off bash's autocompletion for
+# svn.
+complete -cf svn
+
+# Trim utility from http://stackoverflow.com/a/7486606
+trim() {
+   # Determine if 'extglob' is currently on
+   local extglobWasOff=1
+   shopt extglob >/dev/null && extglobWasOff=0
+   (( extglobWasOff )) && shopt -s extglob # Turn 'extglob' on, if currently turned off
+   # Trim leading and trailing whitespace
+   local var=$1
+   var=${var##+([[:space:]])}
+   var=${var%%+([[:space:]])}
+   (( extglobWasOff )) && shopt -u extglob # If 'extglob' was off before, turn it back off
+   echo -n "$var"
+}
+
+javad() {
+   if [ -z "$1" ]; then
+      echo "Error: Missing jar file"
+      return 1;
+   else
+      JAR_FILE="$1"
+   fi
+   if [ -z "$2" ]; then
+      OUTPUT_DIR=`echo "$JAR_FILE" | perl -pe "s/\.jar$//"`
+   else
+      OUTPUT_DIR="$2"
+   fi
+
+   java -jar ~/bin/procyon-decompiler-0.5.30.jar -jar "$JAR_FILE" -o "$OUTPUT_DIR"
+}
+
+# Note: This was written for busybox-bash. Clean it up for regular bash
+timeout() {
+   # This is important to clean up jobs if ctrl-c is pressed
+   # NOTE: Do not wait here! Empirically, the waits below clean up things and an
+   #       extra wait here causes Busybox bash to segfault. Whee!
+   trap 'kill -TERM $(jobs -pr)' INT TERM EXIT
+   delay=$1
+   shift
+   ( "$@" ) &
+   cmdpid=$!
+   ( sleep $delay && kill -TERM $cmdpid ) 2> /dev/null &
+   tmopid=$!
+   wait $cmdpid 2> /dev/null
+   cmdret=$?
+   # bash sets the exit value of an interrupted process to 128 + <signal>
+   # SIGTERM is 15, so that's 143, but use -lt to handle other signals too
+   if [ $cmdret -lt 128 ]; then
+      # Command ran to completion (success for timeout's purposes) so kill the
+      # timer
+      kill -TERM $tmopid
+   fi
+   wait $tmopid 2> /dev/null
+   return $cmdret
+}
+
+# VBoxManage setextradata global GUI/Fullscreen/LegacyMode 1/true
+
+evi() {
+   if [ -z "$1" ]; then
+       echo "No file specified"
+   else
+       evince "$1" > /dev/null 2>&1 &
+    fi
+}
+
+miofiles() {
+   sudo mount -t cifs -o user=$USER,uid=$USER,gid=$USER,vers=2.0 //FS1/miofiles $HOME/miofiles
+}
+umiofiles() {
+   sudo umount $HOME/miofiles
+}
+
+mioftp() {
+   sudo mount -t cifs -o user=$USER,uid=$USER,gid=$USER //FTP/ftp $HOME/mioftp
+}
+umioftp() {
+   sudo umount $HOME/mioftp
+}
+
+clear_crash() {
+   sudo rm -f /var/crash/.lock /var/crash/_* /var/crash/susres.*
+   dir /var/crash
+}
+
+lcd_off() {
+   xset dpms force off
+}
+
+mirror_og() {
+   wget --mirror --no-check-certificate --user miovision --ask-password https://cvs.opengear.com/customers/miovision/
+}
+
+getlogs() {
+    scp $1:"/tmp/dmesg.gz /tmp/syslog.gz /tmp/messages.gz" .
+}
+
+mcd() {
+   [ ! -d "$1" ] && mkdir -p "$1"
+   cd "$1"
+}
+
+gccwarns() {
+   gcc -Q --help=warning
+}
+gccmacros() {
+   gcc -dM -E - < /dev/null
+}
+
+start_routing() {
+   ipfw_enabled=$(sudo cat /proc/sys/net/ipv4/ip_forward)
+   if [ $ipfw_enabled -ne 1 ]; then
+      echo "Please check 'net.ipv4.ip_forward' in /etc/sysctl.conf"
+      echo "/proc/sys/net/ipv4/ip_forward reported '$ipfw_enabled'"
+   else
+      sudo iptables-restore < /etc/iptables/rules.v4
+      ##sudo service isc-dhcp-server restart
+      ##sleep 4
+      # Ubuntu 18.04 service doesn't pass through --no-pager, which must be a new addition to systemctl
+      #sudo service isc-dhcp-server status
+      sudo systemctl --no-pager status isc-dhcp-server
+   fi
+}
+
+#countdown(){
+#    date1=$((`date +%s` + $1));
+#    while [ "$date1" -ge `date +%s` ]; do
+#    ## Is this more than 24h away?
+#    days=$(($(($(( $date1 - $(date +%s))) * 1 ))/86400))
+#    echo -ne "$days day(s) and $(date -u --date @$(($date1 - `date +%s`)) +%H:%M:%S)\r";
+#    sleep 0.1
+#    done
+#}
+
+stopwatch(){
+    date1=`date +%s`;
+    while true; do
+    days=$(( $(($(date +%s) - date1)) / 86400 ))
+    echo -ne "$days day(s) and $(date -u --date @$((`date +%s` - $date1)) +%H:%M:%S)\r";
+    sleep 0.1
+    done
+}
+
+is_number() {
+   if [ -z "${1##*[!0-9]*}" ]; then
+      return 1
+   fi
+   return 0
+}
+
+get_next_fd() {
+   fd_max=$(ulimit -n)
+   fd=0
+   while [ $fd -lt $fd_max ] && [ -e /proc/$$/fd/$fd ]; do
+      ((fd++))
+   done
+   if [ $fd -eq $fd_max ]; then
+      echo "-1"
+   else
+      echo "$fd"
+   fi
+}
+
+lock_init() {
+   lock_file="$1"
+   if [ -z "$lock_file" ] || [ ! -f "$lock_file" ]; then
+      echo "-1"
+      return
+   fi
+   lock_fd=$(get_next_fd)
+   if [ $lock_fd -ne -1 ]; then
+      eval "exec ${lock_fd}>>${lock_file}"
+      if [ $? -ne 0 ]; then
+         lock_fd=-1
+      fi
+   fi
+   echo "$lock_fd"
+}
+
+# using xinput to control the sensitivity of a wireless moure
+#xinput --list
+#xinput --list-props 17
+#xinput set-prop 17 263 1.3
+
+###tame_mouse() {
+###    if [ -z "$1" ]; then
+###        echo "Error: Missing deceleration value"
+###        return 1
+###    fi
+###    id=$(xinput --list | grep "Logitech USB Receiver.*slave  pointer" | cut -d'=' -f2 | cut -f1)
+###    if [ -z "$id" ]; then
+###        return 0
+###    fi
+###    prop=$(xinput list-props $id | grep "Device Accel Constant Deceleration" | cut -d'(' -f2 | cut -d')' -f1)
+###    xinput set-prop $id $prop $1
+###    #xinput list-props $id | grep "Device Accel Constant Deceleration" | grep "[[:digit:]\.]\+$"
+###}
+###tame_mouse 1.3
+
+tiva_env() {
+    export VA_HOME=$HOME/work/va
+    export TIVAWARE_PATH=$VA_HOME/ti/SW-TM4C-2.1.4.178
+    export TOOLS_PATH=$VA_HOME/arm-developer/gcc-arm-none-eabi-6-2017-q2-update
+    export export PATH=$PATH:$TOOLS_PATH/bin:$VA_HOME/ti/uniflash_4.2.1/node-webkit/
+    alias uniflash='nw > /dev/null 2>&1 &'
+}
+
+purge_old_kernels() {
+    # Use with caution
+    dpkg --list | grep linux-image | awk '{ print $2 }' | sort -V | sed -n '/'`uname -r`'/q;p' | xargs sudo apt-get -y purge
+}
+
+gohd() {
+# From edid in monitor (bad checksum):
+#   sudo xrandr --newmode "1920x1080_60.00"  148.50  1920 2008 2052 2200  1080 1084 1089 1125 +hsync +vsync
+    sudo xrandr --newmode "1920x1080_60.00"  173.00  1920 2048 2248 2576  1080 1083 1088 1120 -hsync +vsync
+    sudo xrandr --addmode DVI-I-1-1 "1920x1080_60.00"
+    sudo xrandr --addmode DVI-I-2-2 "1920x1080_60.00"
+    #sudo xrandr --output DVI-I-1-1 --mode 1920x1080_60.00 --right-of eDP-1
+    #sudo xrandr --output DVI-I-2-2 --mode 1920x1080_60.00 --right-of DVI-I-1-1
+    #sudo xrandr --output DVI-I-1-1 --mode 1920x1080_60.00 --right-of eDP-1 --output DVI-I-2-2 --mode 1920x1080_60.00 --right-of DVI-I-1-1
+}
+
+gohd1() {
+    sudo xrandr --newmode "1920x1080_60.00"  148.50  1920 2008 2052 2200  1080 1084 1089 1125 +hsync +vsync
+    sudo xrandr --addmode DVI-I-1-1 "1920x1080_60.00" --addmode DVI-I-2-2 "1920x1080_60.00"
+}
+
+list_colours() {
+   for((i=16; i<256; i++)); do
+      printf "\e[48;5;${i}m%03d" $i;
+      printf '\e[0m';
+      [ ! $((($i - 15) % 6)) -eq 0 ] && printf ' ' || printf '\n'
+   done
+}
+
+sudof() {
+   # From https://unix.stackexchange.com/a/269080/173210
+   sudo bash -c "$(declare -f $1); $1"
+}
