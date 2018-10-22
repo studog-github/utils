@@ -30,6 +30,9 @@ stty -ixon
 ###   fi
 ###fi
 
+###Exit code in prompt
+###https://unix.stackexchange.com/a/470042/173210
+
 # Fix Ubuntu security holes
 # Affected: 14.04 16.04 18.04
 PATH=${PATH//$HOME\/bin:}
