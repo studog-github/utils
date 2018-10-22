@@ -288,7 +288,7 @@ tiva_env() {
     export VA_HOME=$HOME/work/va
     export TIVAWARE_PATH=$VA_HOME/ti/SW-TM4C-2.1.4.178
     export TOOLS_PATH=$VA_HOME/arm-developer/gcc-arm-none-eabi-6-2017-q2-update
-    export export PATH=$PATH:$TOOLS_PATH/bin:$VA_HOME/ti/uniflash_4.2.1/node-webkit/
+    export PATH=$PATH:$TOOLS_PATH/bin:$VA_HOME/ti/uniflash_4.3.1/node-webkit/
     alias uniflash='nw > /dev/null 2>&1 &'
 }
 
