@@ -19,11 +19,11 @@
 	root = "!git rev-parse --show-toplevel"
 	br = "!f() {  \
                    if [ -z \"$1\" ] || [ \"$1\" = \"-v\" ] || [ \"$1\" = \"-vv\" ]; then  \
-                       width=$(git for-each-ref --format='%(refname:lstrip=-1)' refs/heads | wc -L);  \
+                       width=$(git for-each-ref --format='%(refname:lstrip=2)' refs/heads | wc -L);  \
                        if [ \"$1\" = \"-v\" ]; then  \
-                           git for-each-ref --format=\"%(HEAD) %(if)%(HEAD)%(then)%(color:green)%(end)%(align:left,$width)%(refname:lstrip=-1)%(end)%(color:reset) %(objectname:short) %(if)%(upstream:track,nobracket)%(then)[%(color:red)%(upstream:track,nobracket)%(color:reset)]%(end)%(subject)\" refs/heads/;  \
+                           git for-each-ref --format=\"%(HEAD) %(if)%(HEAD)%(then)%(color:green)%(end)%(align:left,$width)%(refname:lstrip=2)%(end)%(color:reset) %(objectname:short) %(if)%(upstream:track,nobracket)%(then)[%(color:red)%(upstream:track,nobracket)%(color:reset)]%(end)%(subject)\" refs/heads/;  \
                        else  \
-                           git for-each-ref --format=\"%(HEAD) %(if)%(HEAD)%(then)%(color:green)%(end)%(align:left,$width)%(refname:lstrip=-1)%(end)%(color:reset) %(objectname:short) %(if)%(upstream)%(then)[%(color:blue)%(upstream:short)%(color:reset)%(if)%(upstream:track,nobracket)%(then): %(color:red)%(upstream:track,nobracket)%(color:reset)%(end)] %(end)%(subject)\" refs/heads/;  \
+                           git for-each-ref --format=\"%(HEAD) %(if)%(HEAD)%(then)%(color:green)%(end)%(align:left,$width)%(refname:lstrip=2)%(end)%(color:reset) %(objectname:short) %(if)%(upstream)%(then)[%(color:blue)%(upstream:short)%(color:reset)%(if)%(upstream:track,nobracket)%(then): %(color:red)%(upstream:track,nobracket)%(color:reset)%(end)] %(end)%(subject)\" refs/heads/;  \
                        fi;  \
                    else  \
                        git branch \"$@\";  \
