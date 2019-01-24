@@ -325,3 +325,101 @@ sudof() {
    # From https://unix.stackexchange.com/a/269080/173210
    sudo bash -c "$(declare -f $1); $1"
 }
+
+# What I want:
+# 1) If:
+# - branch does not have remote tracking
+# - there is exactly one remote configured
+# - the local branch name does not exist on the remote
+# then:
+# - automatically set the tracking to remove/branch on a default 'git push'
+# 2) Be able to do this with the standard 'git push' command without resorting to
+# changing the command in any way.
+#
+# Git wrapper because _this is the __only__ way to accomplish auto-tracking
+# setup_. ffs
+#
+# post-checkout hook is too early:
+#   - 'git branch --set-upstream-to' fails because the remote branch doesn't
+#     exist
+#   - 'git config branch.<name>.remote' fails because the branch then shows up
+#     as 'gone', which is accurate but not desired
+#
+# pre-push hook is too late:
+#   - by the time it runs the remote has already been connected to, which means
+#     the branch was already set up correctly...  and if it wasn't then the hook
+#     never runs
+#
+# git does not allow over-riding builtin commands with git aliases. They can be
+# configured but will be behind the builtin commands in execution priority so
+# will never run.
+#
+git() {
+    local orig_git="$(which git)"
+    local param_string
+    local repo_remotes
+    local repo_remote
+    local local_branch
+    local branch__remote
+    local branch__merge
+
+    # Assume that $1 is the command, push, help, etc
+    if [ "$1" != "push" ]; then
+        "$orig_git" "$@"
+        return
+    fi
+
+    # Stringify parameters for argument checking
+    # From https://stackoverflow.com/a/46206604/1352761
+    printf -v param_string -- ",,%q" "$@"
+    param_string="${param_string},,"
+
+    if [[ "${param_string}" =~ ,,-u,, ]] ||
+                [[ "${param_string}" =~ ,,--set-upstream,, ]]; then
+        "$orig_git" "$@"
+        return
+    fi
+
+    repo_remotes=( $(git remote show) )
+    if [ ${#repo_remotes[@]} -ne 1 ]; then
+        # Can't know which remote to use if there are more than one
+        # Zero remotes is a bare or broken repository
+        "$orig_git" "$@"
+        return
+    fi
+    repo_remote="${repo_remotes[0]}"
+
+    local_branch="$(git symbolic-ref --short HEAD)"
+
+    branch__remote="$(git config branch.${local_branch}.remote)"
+    if [ -n "$branch__remote" ]; then
+        # remote already configured, nothing to do
+        "$orig_git" "$@"
+        return
+    fi
+
+    branch__merge="$(git config branch.${local_branch}.merge)"
+    if [ -n "$branch__merge" ]; then
+        # merge already configured, nothing to do
+        "$orig_git" "$@"
+        return
+    fi
+
+    "$orig_git" ls-remote --exit-code . "${repo_remote}/${local_branch}" > /dev/null
+    ret=$?
+    if [ $ret != 2 ]; then
+        # remote already has a branch of the same name, let git handle things
+        "$orig_git" "$@"
+        return
+    fi
+
+    # Made it! There is
+    # - an active push
+    # - that isn't setting its own tracking
+    # - for a branch that doesn't already have tracking
+    # - where there isn't a conflict with a remote branch
+
+    # Set the tracking
+    # TODO: Handle other paramters from original command here
+    "$orig_git" push --set-upstream "$repo_remote" "$local_branch"
+}
