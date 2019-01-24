@@ -1,0 +1,122 @@
+#!/usr/bin/perl -w
+
+use strict;
+use File::Basename;
+use Net::FTP;
+
+#
+# Retrieves an SDK from the SCR.
+#
+
+# Global version string
+my $version = "1.00";
+my $date = "Aug 02 2006";
+
+# Program's canonical name
+my $this = basename($0);
+
+#
+# History
+#
+# 1.00  Aug 02 2006  stuartm
+#
+# First draft.
+#
+
+#
+# Tunable variables
+#
+
+# The SCR and its host machine
+my $scr_host = "";
+my $scr_user = "";
+my $scr_password = "";
+my $scr_srcdir = "";
+
+#
+# Functions
+#
+
+# Start the FTP connection
+sub start_ftp {
+  my $ftp;
+
+  if (!($ftp = Net::FTP->new($scr_host))) {
+    warn "$this: Error: Couldn't connect to '$scr_host'\n";
+    die "$this: Error: $@\n";
+  }
+  if (!$ftp->login($scr_user, $scr_password)) {
+    warn "$this: Error: Couldn't login to '$scr_host'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+  if (!$ftp->binary()) {
+    warn "$this: Error: Couldn't set binary mode on '$scr_host'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+  if (!$ftp->cwd($scr_srcdir)) {
+    warn "$this: Error: Couldn't cd to '$scr_srcdir'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+
+  return $ftp;
+}
+
+#
+# Main
+#
+
+my $sdk_version;
+my $ftp;
+my $sdk;
+
+while (@ARGV) {
+  $_ = shift;
+  if (/^-h$/) {
+    #
+    # Perl's version of the here document. Works just like the shell's
+    # version. Makes some code much easier to read.
+    #
+    print <<END;
+$this v$version $date
+
+$this -h
+$this [-d dir] [ver]
+
+-h	Help
+-d	Look for the SDK in subdirectory dir in the SCR.
+ver	Retrieve SDK 'ver' from the SCR. Default is the latest version.
+
+END
+    exit 0;
+  } elsif (/^-d$/) {
+    $scr_srcdir .= "/" . shift;
+  } else {
+    if (!defined($sdk_version)) {
+      $sdk_version = $_;
+    } else {
+      warn "$this: Warning: Ignoring extra option '$_'.\n";
+    }
+  }
+}
+
+$ftp = start_ftp();
+if (defined($sdk_version)) {
+  $sdk = ($ftp->ls("uClinux-$sdk_version.sdk.tar.gz"))[0];
+} else {
+  $sdk = (sort { $b cmp $a } $ftp->ls("uClinux-*.sdk.tar.gz"))[0];
+}
+
+if (!defined($sdk)) {
+  if (defined($sdk_version)) {
+    warn "$this: Error: 'uClinux-$sdk_version.sdk.tar.gz' doesn't exist\n";
+  } else {
+    warn "$this: Error: No SDKs were found\n";
+  }
+  # The $ftp->ls() may have succeeded and returned no listings. How to tell?
+  die "$this: Error: " . $ftp->message;
+}
+
+if (!$ftp->get("$sdk")) {
+  warn "$this: Error: Couldn't get '$sdk'\n";
+  die "$this: Error: " . $ftp->message;
+}

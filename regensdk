@@ -1,0 +1,180 @@
+#!/usr/bin/perl -w
+
+use strict;
+use File::Basename;
+use Cwd;
+use Net::FTP;
+
+#
+# Regenerates all SDKs for the firmware tree it is run on. When a new
+# version of the mksdk script has been made it may contain bug fixes
+# for the SDK scripts themselves, and regeneration is the only way to
+# actually get the fix into the existing scripts.
+#
+
+# Global version string
+my $version = "1.00";
+my $date = "Aug 03 2006";
+
+# Program's canonical name
+my $this = basename($0);
+
+#
+# History
+#
+# 1.00  Aug 03 2006  stuartm
+#
+# First draft.
+#
+
+#
+# Tunable variables
+#
+
+# The SCR and its host machine
+my $scr_host = "";
+my $scr_user = "";
+my $scr_password = "";
+my $scr_srcdir = "";
+
+#
+# Functions
+#
+
+# Print a message with a datestamp
+sub dstamp {
+  print localtime() . " @_";
+}
+
+# Start the FTP connection
+sub start_ftp {
+  my $ftp;
+
+  if (!($ftp = Net::FTP->new($scr_host))) {
+    warn "$this: Error: Couldn't connect to '$scr_host'\n";
+    die "$this: Error: $@\n";
+  }
+  if (!$ftp->login($scr_user, $scr_password)) {
+    warn "$this: Error: Couldn't login to '$scr_host'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+  if (!$ftp->binary()) {
+    warn "$this: Error: Couldn't set binary mode on '$scr_host'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+  if (!$ftp->cwd($scr_srcdir)) {
+    warn "$this: Error: Couldn't cd to '$scr_srcdir'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+
+  return $ftp;
+}
+
+# system() a command, and check the return status
+sub do_system {
+  my $exit_code;
+
+  system(@_);
+  if ($? == -1) {
+    die "$this: Error: Couldn't execute '@_'\n";
+  } elsif ($? & 127) {
+    die "$this: Error: Exit on signal for '@_'\n";
+  } elsif ($?) {
+    $exit_code = ($? >> 8);
+    if ($exit_code) {
+      die "$this: Error: Bad exit ($exit_code) for '@_'\n";
+    }
+  }
+}
+
+# Nicely displays a list of items with timestamps
+sub display_item_list {
+  my $line;
+  my $item;
+
+  while (@_) {
+    $line = ":: ";
+    $item = shift;
+    while ($item && ((length($line) + length($item)) < 54)) {
+      $line .= $item . " ";
+      $item = shift;
+    }
+    if (defined($item)) {
+      @_ = ($item, @_);
+    }
+    chop $line;
+    $line .= "\n";
+    dstamp $line;
+  }
+}
+
+#
+# Main
+#
+
+my $tree_type;
+my $ftp;
+my @sdks;
+
+while (@ARGV) {
+  $_ = shift;
+  if (/^-h$/) {
+    #
+    # Perl's version of the here document. Works just like the shell's
+    # version. Makes some code much easier to read.
+    #
+    print <<END;
+$this v$version $date
+
+$this -h
+
+-h	Help
+END
+    exit 0;
+  } else {
+    warn "$this: Error: Bad option '$_'.\n";
+    die "'$this -h' for help.\n";
+  }
+}
+
+#
+# I'd like to do something about the LTS (Leaning Toothpick Syndrome)
+# in this regex, but any non-slash delimiter screws up vim's syntax
+# highlighting. grr. Please leave this as it is.
+#
+($tree_type) = (cwd() =~ /\/firm\/([^\/]+)/);
+if (!defined($tree_type)) {
+  die "$this: Error: Unable to determine firmware tree type\n";
+}
+chdir "/firm/$tree_type";
+
+# The tree type determines where in the SCR to get the SDK list from
+if ($tree_type eq "stu") {
+  $scr_srcdir .= "/" . $tree_type;
+} elsif ($tree_type ne "prod") {
+  warn "$this: Error: Unknown firmware tree type '$tree_type'\n";
+  die "$this: Error: Please update me.\n";
+}
+
+$ftp = start_ftp();
+
+dstamp "Getting SDK list...\n";
+@sdks = $ftp->ls("uClinux-*.sdk.tar.gz");
+for (@sdks) {
+  s/^uClinux-([0-9\.]+)\.sdk\.tar\.gz$/$1/;
+}
+@sdks = sort @sdks;
+display_item_list(@sdks);
+
+for (@sdks) {
+  print "\n";
+  dstamp "Regenerating SDK $_...\n";
+  if (!$ftp->get("uClinux-$_.sdk.tar.gz")) {
+    warn "$this: Error: Couldn't get 'uClinux-$_.sdk.tar.gz'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+  do_system("gunzip < uClinux-$_.sdk.tar.gz | tar xf -");
+  do_system("./uClinux-$_.sdk -a");
+  do_system("mksdk -p $_");
+  do_system("rm -rf uClinux-$_");
+}
