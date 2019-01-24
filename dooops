@@ -1,0 +1,14 @@
+#!/bin/sh
+
+ROOTDIR=/usr/local/bin
+PREFIX=m68k-elf
+
+if [ "$1" = "" ]; then
+  echo "$0: Error: Missing ooops file"
+  exit 1
+fi
+
+> $1.decode
+date >> $1.decode
+echo >> $1.decode
+$ROOTDIR/$PREFIX-ksymoops -e $1 >> $1.decode
