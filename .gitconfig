@@ -8,6 +8,7 @@
 	email = ""
 [core]
 	autocrlf = input
+	safecrlf = true
 	editor = vim
 [alias]
 	co = checkout
