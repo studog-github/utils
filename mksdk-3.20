@@ -1,0 +1,1823 @@
+#!/usr/bin/perl -w
+
+use strict;
+use File::Basename;
+use Cwd;
+use Net::FTP;
+use Fcntl ':mode';
+
+#
+# Produces the SDK and stores it in the SCR. This is the preferred way
+# to store the firmware source now; storing the whole .tar.gz was
+# taking too much space and storing the patch was lossy.
+#
+# NOTE: This script assumes that once a file is deemed NDA that it
+#       will stay NDA. This is not necessarily the case, but it should
+#       be the norm. If a file changes status, the file will need to
+#       be manually moved to the GPL side. The opposite, GPL to NDA,
+#       could only happen in the rare case where we've released some
+#       of our code under the GPL and then re-released it under a
+#       different licence. I don't see that happening, and it wouldn't
+#       be very effective since the old version would remain GPL. So I
+#       don't think we need to worry about that case.
+#
+# NOTE: There are a number of places where identical code lives in two
+#       or more locations. In C, I'd use a macro since the code isn't
+#       heavy-weight enough to require a routine of its own (and the
+#       overhead of calling it). Perl doesn't have macros, yet. Perl 6
+#       is supposed to have them, so I've left the code as is for now.
+#       What this means is, if you're doing changes, make sure that
+#       you have changed *all* the locations. To make it easy, I'll
+#       tag the locations with MACRO X in a comment.
+#	Arg. Perl 6 has no ETA. I've moved some of the more egregious
+#       code into unclean (changes global variables instead of just
+#       using its parameters and returning values) routines.
+#
+# NOTE: This script assumes that the old tree is the original uClinux
+#       distribution. If that changes, the code will have to be
+#       rewritten to take that into account. Specfically the
+#       assumption that a file's presence in the old tree makes it GPL
+#       is widespread and will need to be handled appropriately.
+#
+# NOTE: There are lots of notes in this script. Some of them apply to
+#       multiple locations; I've only noted the first instance. Thus,
+#       this script is intended to be read top-to-bottom, in line
+#       number order. If you find something you don't understand, try
+#       searching for a previous instance of it; there will probably
+#       be a note.
+#
+# NOTE: The reason this script exists at all is that diff and patch do
+#       not handle all that is needed to be handled when one wants to
+#       create a patch for two file trees. I believe this is due to
+#       their being created originally for handling only simple one-
+#       directory hunks of source code, but that's just a guess.
+#       What follows is a hopefully complete list of things that this
+#       script handles because diff and patch do not. If you think of
+#       something and it's not listed here, please let the current
+#       author (see the History section) know because it's almost
+#       certainly not handled, and needs to be.
+#
+#       - handling of any file type other than regular files and
+#         directories
+#       - new empty directories not created because no patch of file
+#         from under that directory
+#       - directories always or never deleted when last file under it
+#         is deleted
+#       - new empty files not created since there's no patch for that
+#       - permissions not preserved
+#
+
+# Global version string
+my $version = "3.19";
+my $date = "Jan 30 2008";
+
+# Program's canonical name
+my $this = basename($0);
+
+#
+# History
+#
+# 3.20  Jan 03 2017  stuartm
+#
+# Typo: tricker => trickier
+#
+# 3.19  Jan 30 2008  cdore
+#
+# Updated to handle production tree's new 5272/5275 layout.
+#
+# 3.18  May 02 2007  stuartm
+#
+# The BHN part of the SCR is now on nasmain. Updated the proper
+#   variables to take this into account.
+#
+# 3.17  Jan 31 2007  stuartm
+#
+# tail(1) bugfix; newer versions (5.97 and up, possibly earlier
+#   versions) require the '-n' option to be present when specifying a
+#   '+' offset. Fixed.
+#
+# 3.16  Nov 16 2006  stuartm
+#
+# Added long option names to all command-line options.
+#
+# 3.15  Aug 03 2006  stuartm
+#
+# Altered the dstamp() function in the SDK script to print out the
+#   same format as perl's localtime() function. This makes the output
+#   from the regensdk tool look nicer.
+#
+# 3.14  Aug 02 2006  stuartm
+#
+# Buggy patch(1) handling bug: I had decided to just check the version
+#   of patch and always use the workaround where required, but somehow
+#   only got through half the coding change. The result was a -p flag
+#   to the SDK script that did nothing, and a workaround that was
+#   never used. Fixed.
+# Renamed tree_(old|new)_long to tree(old|new). Clearer, and the
+#   original design requiring the tree_(old|new)_(long|short) naming
+#   has long since been replaced. tree_new_short still exists though.
+#
+# 3.13  Aug 02 2006  stuartm
+#
+# Small speed up: $ftp->ls() now takes a file glob string, and returns
+#   only SDK filenames for processing. Less network transfer, quicker
+#   pattern matching in get_old_sdks().
+#
+# 3.12  Feb 10 2006  stuartm
+#
+# Added a missing error check for get_patch_level().
+# Updated the code to handle both uClinux-<ver> and uClinux-<ver>-*.
+#   This makes doing an SDK re-generation much easier. Also, the code
+#   now prefers a nameless version over a named version, in case it's
+#   a re-gen of an SDK that still has a temp tree hanging around.
+#
+# 3.11  Jan 31 2006  stuartm
+#
+# Improved error path when $ftp->put() fails. Attempt to delete the
+#   file from the remote machine. More accurately report the error.
+#   It looks like $ftp->message relies on $!, because I got an "Error
+#   0." message.
+#
+# 3.10  Nov 08 2005  stuartm
+#
+# Toolchain install option. SDK scripts now perform this as a separate
+#   step, plays better with the go script.
+# Script rename: mksdk. Now named for what it actually does.
+# Minor URL bugfix. URLs are supposed to have the trailing '/' and the
+#   URLs in the SDK scripts did not. Added.
+#
+# 3.09  Jul 09 2005  stuartm
+#
+# Toolchain root check. The user needs to be root to allow the uClinux
+#   toolchain to be installed.
+# Moved the toolchain handling. Since it's only required to compile
+#   the source, moved it from the assembly section to the compile
+#   section.
+# Moved the patch workaround. Since the workaround only applies to the
+#   assembly section, moved all the handling there.
+#
+# 3.08  Jul 02 2005  stuartm
+#
+# Workaround buggy patch(1)s. Patch 2.5.4 or less has a bug where the
+#   code that looks ahead to guess what kind of patch is coming next
+#   can read off the end of a buffer and segfault. To the end user,
+#   this appears like the SDK crashed. Bad. The workaround is simple
+#   enough; process each file-hunk one at a time so that code isn't
+#   ever run. This works in practice; I manually patched a number of
+#   the SDKs that were crashing, and they worked. Decided against
+#   having the SDK script automatically use the workaround if it's
+#   detected a buggy patch because the crashes are rare, and a new
+#   patch will be out someday that doesn't need this. Also, the
+#   workaround is much slower than the regular method.
+# No more GPL-only. Removed the code that produces this. It's not
+#   needed to store in the SCR, just for posting on the website, and
+#   it's wasted space. Wrote a separate tool to generate the GPL-only
+#   from the regular SDK.
+#
+# 3.07  Jun 10 2005  stuartm
+#
+# SDK script bug. Running it twice would appear to work, but really
+#   create uClinux-<ver>/uClinux-dist, and the third run would fail.
+#   Fixed it to delete uClinux-<ver>.
+#
+# 3.06  Jun 10 2005  stuartm
+#
+# Only create/store the gpl-only tarball for the production tree.
+#   Anything else is assumed to be internal release only.
+#
+# 3.05  May 30 2005  stuartm
+#
+# Command line help for the SDK script. Added help.
+# New command line options for the SDK script. Two options:
+#   -a assemble-only and -c compile-only. Assemble-only puts the
+#   firmware together but does not compile it as a verification step.
+#   Compile-only assumes the firmware is assembled and compiles it.
+#   The default is both operations. This was mostly to help with SDK
+#   testing, where I wanted to assemble the firmware, but not bother
+#   compiling it. Figured the end users might find this useful too.
+# Scripts now have versioning. Decided to just make the scripts the
+#   same version as this program. Since the program's version will
+#   always be updated when changes happen to the SDK scripts, doing it
+#   this ways means I don't have to fuss with individual versions in
+#   the SDK scripts. This allows us to look at an end user's SDK and
+#   determine if they require a newer version of the SDK for the same
+#   firmware level; if a bug in the SDK scripts is fixed for example,
+#   which has already happened once.
+#
+# 3.04  May 27 2005  stuartm
+#
+# New licence option: Delete. This probably won't be useful in the
+#   future, but when I was regenerating the old SDKs from the patches
+#   I encountered a lot of vi swap files and tags files that weren't
+#   needed. The standard method was to quit, delete the file and start
+#   the SDK generation over again. This wastes a lot of effort and is
+#   really annoying. The delete option has been added. It "deletes"
+#   files by adding them to the *_del lists, which are never output.
+#   Deletion by ignoring. Delete does *not* affect the last licence
+#   type tracking. If it did it would be very easy to accidentally
+#   delete a lot of files. Note that while this deletes the file from
+#   the SDK-created firmware tree it does not actually delete it from
+#   the original source tree. This allows "undeletion" by restarting
+#   the SDK generation.
+#
+# 3.03  May 24 2005  stuartm
+#
+# Bug: When regenerating an old SDK (say, due to a bug in this script,
+#   see 3.02 below), a newer SDK was allowed to serve as a reference.
+#   Since the SDK was newer, the $noselfcan flag had no effect, and
+#   even if it had, it would have only gone back one SDK version, not
+#   enough to help the real world situation I encountered
+#   (regenerating the first of three SDKs). Newer SDKs should never
+#   serve as references, because it's too easy to get things wrong.
+#   Example: A file has changed function from NDA to GPL. Using the
+#   newer SDK as a reference, this file would be incorrectly labeled
+#   GPL instead of NDA in the regenerated SDK.
+# Warning for ignored newer SDKs. Added this just in case, a typo in
+#   the -p flag perhaps. Includes a count of how many were skipped.
+#
+# 3.02  May 11 2005  stuartm
+#
+# Bug: SDK script wasn't unpacking the toolchain properly after cd'ing
+#    to the root directory. Good spot by Gareth.
+#
+# 3.01  Apr 17 2005  stuartm
+#
+# Bug: Wasn't checking that the tree-pruning in the "only in old tree"
+#   files processing was actually acting on a directory. This caused
+#   some files to get pruned that should have been processed.
+# Bug: Updated the first "Building" dstamp message to more accurately
+#   reflect the build. In the production tree it now mentions the
+#   version number as well as the patch level.
+#
+# 3.00  Apr 11 2005  stuartm
+#
+# Third draft. Removed dependence on external find(1) with new find()
+#   subroutine. find(1) loses top-level .* files, or if you do
+#   'find .*' it seems to go off to neverland.
+# New SDK packaging; full and GPL-only.
+# New architecture: one pass. Fixes some problems dealing with
+#   patch(1)'s foibles that the old multi-pass architecture had.
+#   Should also be faster. Also fixes a broken assumption the old code
+#   had: that anything that has changed needs to have its licence
+#   status queried. Not true; files in the original tree that have
+#   changed are still GPL. This was carried over from Gareth's code
+#   and he had it because at one point the script (IIRC) was supposed
+#   to work equally well to generate "SDKs" between versions of the
+#   firmware; v1.00 to v1.02 for instance. My usage doesn't need this,
+#   and the script is tons faster without it, mainly due to the
+#   reduction in the questions asked.
+# Lots and lots of commenting added.
+# The new architecture has the side effect that the querying of the
+#   user is now a lot slower, since it's doing all the diffing between
+#   queries instead of up front. I was annoyed at myself until I
+#   realised this is a feature: now it's a lot harder to get partway
+#   through the queries and accidentally hit enter and get the wrong
+#   licence type. Nice.
+# New script design. All the commands and data for them are in one
+#   file, GPL or NDA as appropriate. The patch command extracts the
+#   patches from the script as it runs. Much cleaner encapsulation;
+#   less for the end user to screw up. Also, *all* comamnds are now
+#   in the appropriate GPL or NDA update script, making the overall
+#   SDK script shorter and cleaner.
+# GPL and NDA scripts are now *not* executable. This is to prevent the
+#   end users from accidentally running one of them when they
+#   shouldn't. The scripts are executed from the SDK main script via a
+#   "sh <script>" line. This works quite nicely.
+# Filenames are now handled in their entirety. Funky characters are
+#   properly escaped for appearance in the update scripts. diffs are
+#   done on escaped filenames so the diff doesn't bail with an odd
+#   error. Reference SDKs are processed and filenames are de-escaped
+#   as appropriate. The only exception is that patch cannot handle
+#   finding whitespace of any kind in a filename. If it does then it
+#   takes what it has so far as the filename to patch, and gets the
+#   wrong file. other characters are okay though. I know; I
+#   exhaustively tested this one weekend.
+# Timing! The script now times its operation so that a nice report at
+#   the end of the run tells you how long the script was waiting for
+#   you to answer questions. Really I wanted to know how long it was
+#   taking the script to run, and to know that I had to subtract the
+#   wait-for-user-input time from the total time.
+# No more tree-copying. The new layout/patch handling lended itself to
+#   a new method of removing the top-level filename, so I don't need
+#   the $tree_(old|new)_short trees anymore. I just substitute in the
+#   short names when I need them. This has significantly speeded the
+#   script up.
+#
+# 2.00  Mar 29 2005  stuartm
+#
+# Second draft. Rewrote to take make more use of my development setup
+#   primarily to allow easier ftp manuevering.
+#
+# 1.00  Mar 22 2005  stuartm
+#
+# First draft. This is partially based on the original mksrc util I'd
+#   written, and partially based on the SDK generation scripts Gareth
+#   had written.
+#
+
+#
+# Tunable variables
+#
+
+# The SCR and its host machine
+my $scr_host = "";
+my $scr_user = "";
+my $scr_password = "";
+my $scr_srcdir = "";
+
+#
+# Variables required by "macros"
+#
+# When Perl 6 is released, the functions making use of these should be
+# changed to macros, and the variables below should be returned to the
+# main declaration area.
+#
+
+my ($tree_old, @files_old, $type_old, $perm_old, $link_old);
+my ($tree_new, @files_new, $type_new, $perm_new, $link_new);
+my @old_sdks;
+my $old_sdk;
+my (@sdk_gpl, @sdk_nda);
+my @files_rm;
+my ($files_ln, @files_ln_gpl, @files_ln_nda, @files_ln_del);
+my ($files_chmod, @files_chmod_gpl, @files_chmod_nda, @files_chmod_del);
+my ($files_mkdir, @files_mkdir_gpl, @files_mkdir_nda, @files_mkdir_del);
+my ($files_patch, @files_patch_gpl, @files_patch_nda, @files_patch_del);
+my ($files_touch, @files_touch_gpl, @files_touch_nda, @files_touch_del);
+my ($qstart, $qtotal) = (undef, 0);
+#
+# Dealing with interpolation is always annoying. The following is the
+# set of characters that must be escaped in filenames in unix. If they
+# are not, the shell will interpret them, mangling the filename. For
+# an rm command, this can be dangerous. Some of the characters are
+# standard escaped characters, \n and \t. The " $ @ \ characters must
+# all be escaped here as well, to counter the interpolation of the
+# double-quoted string at the Perl level.
+#
+my $unix_esc_chars = "\t\n !\"\$&'()*:;<=>?\@[\\`{|";
+
+#
+# Functions
+#
+
+# Print a message with a datestamp
+sub dstamp {
+  print localtime() . " @_";
+}
+
+# Discover the highest patch level of firmware in the current directory
+sub get_patch_level {
+  my $tmp_level;
+  my $patch_level = 0;
+
+  while (<uClinux-[0-9]*>) {
+    #
+    # Unfortunately the -d operator follows links so we first have to
+    # rule out a link explicitly.
+    #
+    if (! -l && -d) {
+      ($tmp_level) = /uClinux-([0-9]+)/;
+      if (defined($tmp_level) && ($tmp_level > $patch_level)) {
+        $patch_level = $tmp_level;
+      }
+    }
+  }
+
+  return $patch_level;
+}
+
+# Retrieve the firmware version from within the tree
+sub get_firmware_version {
+  my $tree = shift;
+  my $makefile = "$tree/vendors/vendor/product/Makefile";
+  my $firmware_version;
+
+  open(MAKEFILE, $makefile);
+  while (<MAKEFILE>) {
+    #
+    # NOTE: [:space:] is a *superset* of the \s set. See perlre.
+    #
+    if (/^[[:space:]]*BHNRELEASE[[:space:]]*=[[:space:]]*([0-9]+\.[0-9]+)/) {
+      $firmware_version = $1;
+      last;
+    }
+  }
+  close(MAKEFILE);
+
+  if (!defined($firmware_version)) {
+    die "$this: Error: Couldn't determine firmware version from '$makefile'\n";
+  }
+
+  return $firmware_version;
+}
+
+# Start the FTP connection
+sub start_ftp {
+  my $ftp;
+
+  if (!($ftp = Net::FTP->new($scr_host))) {
+    warn "$this: Error: Couldn't connect to '$scr_host'\n";
+    die "$this: Error: $@\n";
+  }
+  if (!$ftp->login($scr_user, $scr_password)) {
+    warn "$this: Error: Couldn't login to '$scr_host'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+  if (!$ftp->binary()) {
+    warn "$this: Error: Couldn't set binary mode on '$scr_host'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+  if (!$ftp->cwd($scr_srcdir)) {
+    warn "$this: Error: Couldn't cd to '$scr_srcdir'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+
+  return $ftp;
+}
+
+# Discover the SDKs available, return the list highest to lowest
+sub get_old_sdks {
+  my @patch_levels;
+
+  for (@_) {
+    if (/^uClinux-([0-9\.]+)\.sdk\.tar\.gz$/) {
+      push @patch_levels, $1;
+    }
+  }
+
+  return sort { $b <=> $a } @patch_levels;
+}
+
+# find(1) rewritten in perl. Note: recursive, depth-first.
+sub find {
+  my $dir = shift;
+  my $fullpath;
+  my @files;
+  my @subfiles;
+
+  if (!(opendir DIR, $dir)) {
+    warn "$this: Error: Couldn't open '$dir'\n";
+    die "$this: Error: $!\n";
+  }
+  for (readdir DIR) {
+    if (/^\.\.?$/) {
+      next;
+    }
+    push @files, $_;
+    $fullpath = $dir . "/" . $_;
+    if ((! -l $fullpath) && (-d $fullpath)) {
+      @subfiles = find($fullpath);
+      while (@subfiles) {
+        push @files, $_ . "/" . shift @subfiles;
+      }
+    }
+  }
+  closedir DIR;
+
+  return @files;
+}
+
+#
+# Determine an "only in the new tree" file's GPL or NDA status
+#
+# The odd bracing is to create a local to the routine C-style static
+# variable; see perlsub.
+#
+{
+  my $last_type = "gpl";
+  my $last_nda_file;
+
+  sub set_gplnda {
+    my $file = shift;
+    my $type = "ask";
+    my @indexes;
+    my $old_block;
+    my $fullpath;
+
+    if ($old_sdk) {
+      #
+      # The following grep() idiom works like this: loop over all the
+      # possible indexes of the array, binding the actual array value
+      # to a search for the item in question. grep then returns a
+      # list of the looped-over items that the expressions was true
+      # for, that is, a list of all the indexes of matching lines.
+      #
+      # This one is tricky; take a few minutes.
+      #
+      # The \Q and \E turn off regex metacharacters between them, so
+      # those sorts of characters in the filename we're trying to
+      # match don't affect the regex. (Think preventing an SQL
+      # injection attack.)
+      #
+      @indexes = grep(($sdk_gpl[$_] =~ /^\Q$file\E$/), 0..$#sdk_gpl);
+      if (@indexes) {
+        $type = "gpl";
+        #
+        # Remove the matched item from the array. Since they are unique
+        # once it's matched it will never match again, and just slow
+        # down further lookups.
+        #
+        # A simple shift might seem like it would suffice, especially
+        # as the lists are sorted, except that the lists are generated
+        # from the chmod commands in the old SDK scripts and more than
+        # just the "only in the new tree" files get chmoded.
+        #
+        splice(@sdk_gpl, $indexes[0], 1);
+      } else {
+        @indexes = grep(($sdk_nda[$_] =~ /^\Q$file\E$/), 0..$#sdk_nda);
+        if (@indexes) {
+          $type = "nda";
+          splice(@sdk_nda, $indexes[0], 1);
+        }
+      }
+    }
+    while ($type eq "ask") {
+      #
+      # This is apparently how one flushes STDIN in Perl. Annoying but
+      # true. HANDLE->flush() only flushes the output side.
+      #
+      $old_block = STDIN->blocking(0);
+      while (<STDIN>) {};
+      STDIN->blocking($old_block);
+      print "$file, (g)pl, (n)da or (D)el [$last_type]? ";
+      $qstart = time();
+      chomp($type = <STDIN>);
+      $qtotal += (time() - $qstart);
+      if ($type eq "g") {
+        $type = "gpl";
+      } elsif ($type eq "n") {
+        $type = "nda";
+      } elsif ($type eq "D") {
+        $type = "del";
+      } elsif ($type eq "") {
+        $type = $last_type;
+      } else {
+        $type = "ask";
+      }
+    }
+
+    #
+    # This is a bit of niceness. When answering questions, the code
+    # remembers your last answer and assumes that as a default. This
+    # generally works because the files, GPL or NDA, tend to group. So
+    # there'll be a bunch of GPL, bunch of NDA, bunch of GPL. To say
+    # that another way, the number of licence status transitions are
+    # naturally minimal. So far, nothing special, right?
+    #
+    # This code is invoked for all files, including the ones that
+    # don't require a question to the user. This also might not sound
+    # like much, it's necessary after all, but the effect is that the
+    # last licence status is tracked, not the last answer. When
+    # creating a new SDK with an old reference SDK this tracking will
+    # appear to correctly guess the default for the licence status in
+    # question! ie When one new file has been added to the NDA
+    # section, since the previous status was NDA, then the default for
+    # the single new file is NDA, which happens to be correct. Again,
+    # this is due to the grouping of the licence types, but it's not
+    # obvious. It may confuse someone down the road when the program
+    # is given too much credit for being smart, but the code
+    # responsible for heuristically guessing the licence status can't
+    # be found. The final piece of this trick is that the $last_type
+    # variable is initialised to GPL. This is due to the fact that the
+    # file list is processed in sorted order, and the first file is
+    # generally a file in the top level of the uClinux distribution,
+    # which is GPL.
+    #
+    # Except we never want to remember the delete "licence", so retain
+    # the previous licence type.
+    #
+    if ($type ne "del") {
+      $last_type = $type;
+    }
+
+    if ($type eq "gpl") {
+      #
+      # The use of one pointer to refer to the GPL or NDA actual lists
+      # made the code in the diffing section cleaner and easier to
+      # read.
+      #
+      $files_ln = \@files_ln_gpl;
+      $files_chmod = \@files_chmod_gpl;
+      $files_mkdir = \@files_mkdir_gpl;
+      $files_patch = \@files_patch_gpl;
+      $files_touch = \@files_touch_gpl;
+      #
+      # Generally one can't have a GPL file of any type if one of the
+      # parent directories is NDA. This is because the creation of
+      # that directory will happen second, in the NDA update, but the
+      # GPL file will need it to happen first, in the GPL update.
+      # Yes it would be very easy to simply switch the declaration of
+      # the parent directories, or to make everything under the NDA
+      # directory automatically NDA, but I didn't do that. I figure if
+      # you're trying to decelare this particular chain of files, then
+      # you don't realise that you've got other bigger problems, and
+      # you need the error to force yourself to look at the situation.
+      #
+      if ($last_nda_file && ($file =~ /^\Q$last_nda_file\E/)) {
+        warn "$this: Error: Bad GPL declaration. '$last_nda_file'\n";
+        warn "$this: Error: previously declared NDA. If this was allowed it\n";
+        die "$this: Error: would produce SDK scripts that don't work.\n";
+      }
+    } elsif ($type eq "nda") {
+      $files_ln = \@files_ln_nda;
+      $files_chmod = \@files_chmod_nda;
+      $files_mkdir = \@files_mkdir_nda;
+      $files_patch = \@files_patch_nda;
+      $files_touch = \@files_touch_nda;
+      $fullpath = "$tree_new/$file";
+      if (((! -l $fullpath) && (-d $fullpath)) &&
+                      !($last_nda_file && ($file =~ /^\Q$last_nda_file\E/))) {
+        $last_nda_file = $file;
+      }
+    } else {
+      $files_ln = \@files_ln_del;
+      $files_chmod = \@files_chmod_del;
+      $files_mkdir = \@files_mkdir_del;
+      $files_patch = \@files_patch_del;
+      $files_touch = \@files_touch_del;
+    }
+  }
+}
+
+# Type TO String; translates a file's type to a readable string
+sub ttos {
+  my $type = shift;
+
+  if ($type == S_IFBLK) {
+    return "block device";
+  } elsif ($type == S_IFCHR) {
+   return "character device";
+  } elsif ($type == S_IFDIR) {
+    return "directory";
+  } elsif ($type == S_IFREG) {
+    return "file";
+  } elsif ($type == S_IFLNK) {
+    return "link";
+  } elsif ($type == S_IFIFO) {
+    return "fifo";
+  } elsif ($type == S_IFSOCK) {
+    return "socket";
+  }
+}
+
+# system() a command, and check the return status
+sub do_system {
+  my $exit_code;
+
+  system(@_);
+  if ($? == -1) {
+    die "$this: Error: Couldn't execute '@_'\n";
+  } elsif ($? & 127) {
+    die "$this: Error: Exit on signal for '@_'\n";
+  } elsif ($?) {
+    $exit_code = ($? >> 8);
+    if ($exit_code) {
+      die "$this: Error: Bad exit ($exit_code) for '@_'\n";
+    }
+  }
+}
+
+# Escape a filename
+sub esc {
+  if (defined($_[0])) {
+    #
+    # The \Q \E is critical around the character set variable;
+    # otherwise the set is interpolated, and the \ will be dropped as
+    # escaping whatever follows it.
+    #
+    if ($_[0] =~ /[\Q$unix_esc_chars\E]/) {
+      #
+      # Search for all 's in the string and escape them with
+      # backslashes.
+      #
+      $_[0] =~ s/'/\\'/g;
+      #
+      # This one's trickier:
+      # (             - make a capture/group
+      #  (?:          - make a group without making a capture
+      #     [^'\\]    - match a class consisting of *not* a single
+      #                 quote or backslash
+      #           |   - or (of the non-capture group)
+      #     \\        - match a backslash...
+      #       (?!')   - *not* followed by a single quote; see perlre
+      #  )            - close the non-capture group
+      #   +           - match one or more of the non-capture group
+      # )             - close the capture group
+      #
+      # This should match all sequences of text that's not the escaped
+      # single quotes generated by the previous s///, and enclose them
+      # in single quotes.
+      #
+      $_[0] =~ s/((?:[^'\\]|\\(?!'))+)/'$1'/g;
+    }
+  } else {
+    if (/[\Q$unix_esc_chars\E]/) {
+      s/'/\\'/g;
+      s/((?:[^'\\]|\\(?!'))+)/'$1'/g;
+    }
+  }
+}
+
+# Unescape a filename
+sub unesc {
+  if (defined($_[0])) {
+    #
+    # The presence of a single quote means the filename has been
+    # escaped, since the single quote is the escape-mechanism.
+    #
+    if ($_[0] =~ /'/) {
+      #
+      # (?<!\\)   - whatever matches must not have been preceded by a
+      #             backslash
+      #        '  - match a single quote (not following a backslash)
+      #
+      # Delete all non-escaped single quotes; this is the inverse of
+      # the last s/// in esc().
+      #
+      $_[0] =~ s/(?<!\\)'//g;
+      #
+      # Unescape all the escaped single quotes. This is the inverse of
+      # the first s/// in esc().
+      #
+      $_[0] =~ s/\\'/'/g;
+    }
+  } else {
+    if (/'/) {
+      s/(?<!\\)'//g;
+      s/\\'/'/g;
+    }
+  }
+}
+
+# Prettify the time
+sub pretty_time {
+  my $time = shift;
+  my ($days, $hours, $mins, $secs);
+
+  $days = sprintf("%4d", ($time / (24 * 60 * 60)) % (24 * 60 * 60));
+  $hours = sprintf("%02d", ($time / (60 * 60)) % (60 * 60));
+  $mins = sprintf("%02d", ($time / 60) % 60);
+  $secs = sprintf("%02d", $time % 60);
+
+  return ($days, $hours, $mins, $secs);
+}
+
+#
+# "Macros"
+#
+# Variables that should really be macros. When Perl 6 comes out...
+#
+
+my $noselfcan = "-o";
+my $noselfcanlong = "--older";
+
+#
+# Main
+#
+
+my $patch_level;
+my $use_older_sdk = 0;
+my $ignored_sdks = 0;
+my $tree_type;
+my ($start, $end);
+my $target_level;
+my $tree_new_short;
+my $ftp;
+my ($diff_old, $diff_new);
+my $cmd_diff = "diff -Nau";
+my $cmd_rm = "rm -rf";
+my $cmd_ln = "ln -s";
+my $cmd_mkdir = "mkdir -p";
+my $cmd_chmod = "chmod";
+#
+# The default for the -p option is -p<max> instead of -p0. grr.
+#
+my $cmd_patch = "patch -p0";
+my $cmd_touch = "touch";
+my @patch_lines;
+my ($total_time, $script_time);
+my ($days, $hours, $minutes, $seconds);
+my $message;
+my $i;
+
+while (@ARGV) {
+  $_ = shift;
+  if (/^-h$/ || /^--help$/) {
+    #
+    # Perl's version of the here document. Works just like the shell's
+    # version. Makes some code much easier to read.
+    #
+    print <<END;
+$this v$version $date
+
+$this -h
+$this [$noselfcan] [-p <level>]
+
+-h, --help	Help
+$noselfcan, $noselfcanlong	Use the second oldest SDK for guidance. Avoids self-cannibalism.
+-p, --patch	The patch level of the source tree to prepare. If not specified
+		defaults to the most recent patch level available.
+END
+    exit 0;
+  } elsif (/^-p$/ || /^--patch$/) {
+    if (!@ARGV) {
+      warn "$this: Error: Option '-p' missing argument <level>\n";
+      die "'$this -h' for help.\n";
+    }
+    $patch_level = shift;
+  } elsif (/^$noselfcan$/ || /^$noselfcanlong$/) {
+    $use_older_sdk = 1;
+  } else {
+    warn "$this: Error: Bad option '$_'.\n";
+    die "'$this -h' for help.\n";
+  }
+}
+
+#
+# I'd like to do something about the LTS (Leaning Toothpick Syndrome)
+# in this regex, but any non-slash delimiter screws up vim's syntax
+# highlighting. grr. Please leave this as it is.
+#
+($tree_type) = (cwd() =~ /\/firm\/([^\/]+)/);
+if (!defined($tree_type)) {
+  die "$this: Error: Unable to determine firmware tree type\n";
+}
+chdir "/firm/$tree_type";
+
+if (!defined($patch_level)) {
+  $patch_level = get_patch_level();
+  if (!$patch_level) {
+    die "$this: Error: Couldn't find any firmware\n";
+  }
+}
+#
+# When redoing the SDKs due to a mksdk update, the generated trees
+# have no name tag. So check for the no-name tree first.
+#
+$tree_old = "uClinux-0";
+if (! -d $tree_old) {
+  $tree_old = glob("uClinux-0-*");
+  if (!defined($tree_old)) {
+    die "$this: Error: No original uClinux tree present\n";
+  }
+}
+$tree_new = "uClinux-$patch_level";
+if (! -d $tree_new) {
+  $tree_new = glob("uClinux-$patch_level-*");
+  #
+  # If the firmware can't be found, probably it was specified on the
+  # command line. It's possible that between the get_patch_level() call
+  # and the glob() that the firmware was erased, but that's highly
+  # unlikely. Hence the wording of the error message.
+  #
+  if (!defined($tree_new)) {
+    die "$this: Error: Couldn't find specified firmware version '$patch_level'\n";
+  }
+}
+$start = time();
+
+#
+# The tree type determines where in the SCR to put the finished SDK,
+# and what version numbering to use.
+#
+if ($tree_type eq "prod") {
+  $target_level = get_firmware_version($tree_new);
+  dstamp "Building SDK for firmware $target_level ($patch_level)...\n";
+} elsif ($tree_type eq "stu") {
+  $target_level = $patch_level;
+  $scr_srcdir .= "/$tree_type";
+  dstamp "Building SDK for firmware $patch_level...\n";
+} else {
+  warn "$this: Error: Unknown firmware tree type '$tree_type'\n";
+  die "$this: Error: Please update me.\n";
+}
+$tree_new_short = "uClinux-$target_level";
+
+# Load the old SDK if possible
+dstamp "Checking for old SDKs...\n";
+$ftp = start_ftp();
+@old_sdks = get_old_sdks($ftp->ls("uClinux-*.sdk.tar.gz"));
+$old_sdk = shift @old_sdks;
+# Never use a newer SDK as a reference for an old SDK
+while ($old_sdk && ($old_sdk > $target_level)) {
+  $old_sdk = shift @old_sdks;
+  $ignored_sdks++;
+}
+if ($ignored_sdks) {
+  warn "$this: Warning: Ignored $ignored_sdks newer SDK" .
+                                        ($ignored_sdks > 1 ? "s" : "") . "\n";
+}
+if ($old_sdk && ($old_sdk == $target_level)) {
+  if ($use_older_sdk) {
+    #
+    # This shift can cause $old_sdk to be undefined again; hence this
+    # if statement can't be moved into the main if statement below.
+    #
+    $old_sdk = shift @old_sdks;
+  } else {
+    warn "$this: Warning: Self-cannibalism detected. Old SDK is $old_sdk, " .
+                                                  "build is $target_level.\n";
+    warn "$this: Warning: This probably isn't what you wanted; try the " .
+                                                         "$noselfcan flag.\n";
+  }
+}
+if ($old_sdk) {
+  dstamp "Loading old SDK $old_sdk...\n";
+  if (!$ftp->get("uClinux-$old_sdk.sdk.tar.gz")) {
+    warn "$this: Error: Couldn't get 'uClinux-$old_sdk.sdk.tar.gz'\n";
+    die "$this: Error: " . $ftp->message;
+  }
+  do_system("gunzip < uClinux-$old_sdk.sdk.tar.gz | tar xf -");
+  #
+  # Only files that are only in the new tree have the option of being
+  # GPL or NDA. Common files were in the old tree, as well as files
+  # only in the old tree, and they are all GPL by definition. Since we
+  # always chmod the new files; it is sufficient to grep in only the
+  # chmod commands to get a complete reference from the old SDK.
+  #
+  # The first grep gets all the matching lines from the file, and the
+  # for loop extracts the filename from each line.
+  #
+  open SDK_GPL, "uClinux-$old_sdk.gpl";
+  open SDK_NDA, "uClinux-$old_sdk.nda";
+  chomp(@sdk_gpl = grep(/^\Q$cmd_chmod\E/, <SDK_GPL>));
+  chomp(@sdk_nda = grep(/^\Q$cmd_chmod\E/, <SDK_NDA>));
+  close SDK_GPL;
+  close SDK_NDA;
+  for (@sdk_gpl, @sdk_nda) {
+    #
+    # [0-7]{1,4} is an accurate regex for the octal mode value. The
+    # file could have as little as only other permissions set (one
+    # digit) or have the setuid bit set (four digits).
+    #
+    # (                 - start the capture group
+    #  (?:              - start a non-capture group
+    #     \\'           - match an escaped single quote
+    #        |          - or (non-capture group)
+    #     '             - match a single quote...
+    #      [^']+        - followed by a string of non-single quotes...
+    #           '       - followed by a single quote
+    #            (?!')  - this match may not be followed by a single
+    #                     quote; see perlre
+    #  )                - end group
+    #   +               - one or more of the groups; this represents
+    #                     an escaped filename
+    #    |              - or (capture group)
+    #  [^'[:space:]]+   - a sequence of non-spaces or -single-quotes;
+    #                     this represents an unescaped filename
+    # )                 - end capture group
+    #
+    # There's a small or (|) and a big or; the small one matches parts
+    # of an escaped filename to make a whole filename, and the large
+    # one matches either an escaped filename or an unescaped filename.
+    # The whole in is then replaced with only the matched filename.
+    #
+    s/^\Q$cmd_chmod\E [0-7]{1,4} ((?:\\'|'[^']+'(?!'))+|[^'[:space:]]+).*$/$1/;
+    #
+    # And unescape. unesc knows to leave non-escaped filenames as is.
+    #
+    unesc;
+  }
+} elsif ($use_older_sdk) {
+  dstamp "No second oldest SDK. Queens, lots of queens...\n";
+} else {
+  dstamp "Old SDK not found. Questions, lots of questions...\n";
+}
+#
+# In the time it takes to run the script, there's lots of things that
+# could go wrong with the connection. It would be slightly faster to
+# leave it up, but it's more robust to take it down and bring it up
+# later.
+#
+$ftp->quit();
+
+dstamp "Generating file lists...\n";
+@files_old = sort(find($tree_old));
+@files_new = sort(find($tree_new));
+
+dstamp "Diffing trees...\n";
+#
+# The overview of the following loop is:
+# if (only in old) {
+# } elsif (only in new) {
+# } else (common to both) {
+# }
+#
+# This is the behaviour of comm(1). In previous versions of this
+# script the loop was limited to merely separating the files into the
+# three classes. This version expands the loop to do the diffing as
+# well, making it a one-pass system. In really old versions we tried
+# to leverage comm for this task, but that's no longer possible with
+# the extra diffing work.
+#
+while (@files_old && @files_new) {
+  if ($files_old[0] lt $files_new[0]) {
+    #
+    # Files only in the original distribution. Remove them.
+    #
+    # Files only in the old tree are always GPL, since the original
+    # uClinux tree is GPL and we can't logically be removing files
+    # from the new tree. (That would be making the patch in the
+    # reverse direction.)
+    #
+    # MACRO A start
+    push @files_rm, shift @files_old;
+    #
+    # An 'rm -rf' is sufficient to remove a whole tree of files. To
+    # avoid producing useless removes for all of the contents of such
+    # a tree, remove the rest of the tree from the files list. This
+    # depends on the files list being sorted, which it is.
+    #
+    # The [-1] notation is a regular array index, if unusual. The
+    # negative sign allows one to reference from the end of the array.
+    # So -1 is the index of the last element in the array.
+    #
+    if ((! -l $files_rm[-1]) && (-d $files_rm[-1])) {
+      while ((@files_old) && ($files_old[0] =~ /^\Q$files_rm[-1]\E/)) {
+        shift @files_old;
+      }
+    }
+    # MACRO A end
+  } elsif ($files_new[0] lt $files_old[0]) {
+    #
+    # Files only in the new tree. Create them.
+    #
+    # Currently handling dirs, files and links. The content of files
+    # is handled by patch; the content of links are their targets,
+    # create them here. Dirs don't have content per se, but they do
+    # need to be created.
+    #
+    # Other file types could be handled, what constitutes the contents
+    # would need to be determined. For block and char devices,
+    # probably the major/minor number, but that doesn't transfer
+    # between machines/OSes. But pipes and sockets might be doable.
+    #
+    # Pipes seem to be created with mkfifo(1), and have no content.
+    # They're just an anchor point for IPC.
+    #
+    # Sockets appear to be the instantiation of unix domain sockets,
+    # and likely can only be created with a socket(2) call.
+    #
+    # The _ in the second lstat is Perl's special file handle that
+    # simply accesses the most recent file call results. In this case
+    # the last stat info.
+    #
+    # MACRO B start
+    $type_new = S_IFMT((lstat("$tree_new/$files_new[0]"))[2]);
+    $perm_new = S_IMODE((lstat(_))[2]);
+    # MACRO B end
+    if ($type_new == S_IFLNK) {
+      set_gplnda($files_new[0]);
+      #
+      # The [] construct in the following push line creates an
+      # anonymous array, to generate a reference from, to push onto
+      # the other array. Perl oddity, since arrays may only hold
+      # scalars the reference is taken to provide that scalar.
+      #
+      push @$files_ln, [$files_new[0], readlink($files_new[0])];
+    } elsif ($type_new == S_IFDIR) {
+      set_gplnda($files_new[0]);
+      push @$files_mkdir, $files_new[0];
+    } elsif ($type_new == S_IFREG) {
+      #
+      # diff handles whitespace in filenames gracefully, but does not
+      # output filenames escaped in the patch file. Patch then cannot
+      # determine the start and end points of the filenames, and
+      # things go badly. Since diff output is beyond my control; whine
+      # about it so the filename gets changed.
+      #
+      # MACRO C start
+      if ($files_new[0] =~ /[[:space:]]/) {
+        warn "$this: Error: Whitespace detected in filename " .
+                                                          "'$files_new[0]'\n";
+        die "$this: Error: Please rename the file. patch(1) can't handle " .
+                                                               "the truth!\n";
+      }
+      # MACRO C end
+      set_gplnda($files_new[0]);
+      #
+      # Ah, regular files. We must generate a diff for this since it
+      # is new.
+      #
+      # NOTE: Notice the subtle difference below? That's right,
+      #       $files_new[0] is on both sides, even though we know it
+      #       doesn't exist in the old tree. This is to get diff to
+      #       produce a well-formed patch. The '/dev/null' trick makes
+      #       ugly patches. This works, as long as the $cmd_diff
+      #       command has the -N flag, which it does.
+      #
+      # The filenames must be escaped because the backticks use the
+      # shell to run the command, interpolating the filenames. If
+      # they're not escaped badness happens.
+      #
+      esc $diff_old = "$tree_old/$files_new[0]";
+      esc $diff_new = "$tree_new/$files_new[0]";
+      @patch_lines = `$cmd_diff $diff_old $diff_new`;
+      if (@patch_lines) {
+        #
+        # Fix up the patch. diff doesn't have enough options to allow
+        # us to specify that the filenames on both sides of the
+        # equation should be altered (-L only handles the old tree
+        # side), so fix up the filenames here. Since we'll be
+        # executing from within the root of the source tree the effect
+        # of this is to pre-do the -p1 option for patch. Also makes
+        # the patches cleaner.
+        #
+        # MACRO E start
+        $patch_lines[0] =~ s/^--- $tree_old\//--- /;
+        $patch_lines[1] =~ s/^\+\+\+ $tree_new\//\+\+\+ /;
+        # MACRO E end
+        push @$files_patch, @patch_lines;
+      } else {
+        #
+        # If there's no patch, it's an empty file. Just touch it.
+        #
+        push @$files_touch, $files_new[0];
+      }
+    } else {
+      # MACRO D start
+      $type_new = ttos($type_new);
+      warn "$this: Error: '$files_new[0]' is a $type_new\n";
+      if ($type_new eq "directory") {
+        #
+        # Freakin' English language.
+        #
+        $type_new = "directorie";
+      }
+      die "$this: Error: Perhaps you could teach me to handle ${type_new}s?\n";
+      # MACRO D end
+    }
+    #
+    # Always chmod the new files. They will be created with the
+    # influence of a random umask, corrupting all the permissions. So
+    # we fix them here.
+    #
+    # Also, since new files are the only ones we have to query about
+    # the licence status of; and all new files are chmoded, that means
+    # the SDK loading code only has to pull in the chmod commands to
+    # get the complete reference about which files are which.
+    #
+    push @$files_chmod, [$files_new[0], $perm_new];
+    shift @files_new;
+  } else {
+    #
+    # Files common to both trees. Examine them for differences, and
+    # output if possible a transformation.
+    #
+    # GPL/NDA status is always GPL, since the file was in the old
+    # tree.
+    #
+    # MACRO B start
+    $type_old = S_IFMT((lstat("$tree_old/$files_old[0]"))[2]);
+    $perm_old = S_IMODE((lstat(_))[2]);
+    # MACRO B end
+    # MACRO B start
+    $type_new = S_IFMT((lstat("$tree_new/$files_new[0]"))[2]);
+    $perm_new = S_IMODE((lstat(_))[2]);
+    # MACRO B end
+    if ($type_old != $type_new) {
+      #
+      # Handling this isn't hard, I just don't have an instance where
+      # I need it yet.
+      #
+      $type_old = ttos($type_old);
+      $type_new = ttos($type_new);
+      warn "$this: Error: File has changed from $type_old to $type_new " .
+                                                          "'$files_new[0]'\n";
+      die "$this: Error: Perhaps you could teach me to handle this kind " .
+                                                           "of transition?\n";
+    }
+    #
+    # If other file types need to be handled, they must be added here.
+    # This will be done on an as-needed basis.
+    #
+    if ($type_new == S_IFLNK) {
+      $link_old = readlink("$tree_old/$files_old[0]");
+      $link_new = readlink("$tree_new/$files_new[0]");
+      if ($link_old ne $link_new) {
+        #
+        # The transformation for links is to simply delete it, and
+        # recreate it with the correct target.
+        #
+        # This imposes an ordering upon the update script; rms must
+        # must happen before lns, and in general rms must happen
+        # before creations to handle this style of transformation (the
+        # "delete and recreate" style) properly.
+        #
+        push @files_rm, $files_old[0];
+        push @files_ln_gpl, [$files_new[0], $link_new];
+      }
+    } elsif ($type_new == S_IFREG) {
+      esc $diff_old = "$tree_old/$files_old[0]";
+      esc $diff_new = "$tree_new/$files_new[0]";
+      @patch_lines = `$cmd_diff $diff_old $diff_new`;
+      if (@patch_lines) {
+        #
+        # The whitespace whining is delayed until we know that it will
+        # be a problem. ie That we actually have to patch this file.
+        # Avoids whining about files with whitespace that are
+        # otherwise handleable, like files that didn't change.
+        #
+        # MACRO C start
+        if ($files_new[0] =~ /[[:space:]]/) {
+          warn "$this: Error: Whitespace detected in filename " .
+                                                          "'$files_new[0]'\n";
+          die "$this: Error: Please rename the file. patch(1) can't handle " .
+                                                               "the truth!\n";
+        }
+        # MACRO C end
+        # MACRO E start
+        $patch_lines[0] =~ s/^--- $tree_old\//--- /;
+        $patch_lines[1] =~ s/^\+\+\+ $tree_new\//\+\+\+ /;
+        # MACRO E end
+        push @files_patch_gpl, @patch_lines;
+      }
+    }
+    #
+    # Handle the permissions if they've changed. It's possible that
+    # this is the only change a file has had.
+    #
+    if ($perm_old != $perm_new) {
+      push @files_chmod_gpl, [$files_new[0], $perm_new];
+    }
+    shift @files_old;
+    shift @files_new;
+  }
+}
+while (@files_old) {
+  # MACRO A start
+  push @files_rm, shift @files_old;
+  if ((! -l $files_rm[-1]) && (-d $files_rm[-1])) {
+    while ((@files_old) && ($files_old[0] =~ /^\Q$files_rm[-1]\E/)) {
+      shift @files_old;
+    }
+  }
+  # MACRO A end
+}
+while (@files_new) {
+  # MACRO B start
+  $type_new = S_IFMT((lstat("$tree_new/$files_new[0]"))[2]);
+  $perm_new = S_IMODE((lstat(_))[2]);
+  # MACRO B end
+  if ($type_new == S_IFLNK) {
+    set_gplnda($files_new[0]);
+    push @$files_ln, [$files_new[0], readlink($files_new[0])];
+  } elsif ($type_new == S_IFDIR) {
+    set_gplnda($files_new[0]);
+    push @$files_mkdir, $files_new[0];
+  } elsif ($type_new == S_IFREG) {
+    # MACRO C start
+    if ($files_new[0] =~ /[[:space:]]/) {
+      warn "$this: Error: Whitespace detected in filename '$files_new[0]'\n";
+      die "$this: Error: Please rename the file. patch(1) can't handle " .
+                                                               "the truth!\n";
+    }
+    # MACRO C end
+    set_gplnda($files_new[0]);
+    esc $diff_old = "$tree_old/$files_new[0]";
+    esc $diff_new = "$tree_new/$files_new[0]";
+    @patch_lines = `$cmd_diff $diff_old $diff_new`;
+    if (@patch_lines) {
+      # MACRO E start
+      $patch_lines[0] =~ s/^--- $tree_old\//--- /;
+      $patch_lines[1] =~ s/^\+\+\+ $tree_new\//\+\+\+ /;
+      # MACRO E end
+      push @$files_patch, @patch_lines;
+    } else {
+      push @$files_touch, $files_new[0];
+    }
+  } else {
+    # MACRO D start
+    $type_new = ttos($type_new);
+    warn "$this: Error: '$files_new[0]' is a $type_new\n";
+    if ($type_new eq "directory") {
+      $type_new = "directorie";
+    }
+    die "$this: Error: Perhaps you could teach me to handle ${type_new}s?\n";
+    # MACRO D end
+  }
+  push @$files_chmod, [$files_new[0], $perm_new];
+  shift @files_new;
+}
+
+#
+# Fold the mkdirs. A chain of directories can be created with one
+# mkdir -p command. It's difficult to tell during the above if a mkdir
+# command can be folded into the next one (ie it has a child directory
+# that will be created with mkdir, thus creating it as well) because
+# the file list is sorted in name order not type order. So one would
+# need to scan ahead for a while. Not impossible but annoying. Easier
+# to just do it now, when one only has to look ahead at the next mkdir
+# command to see if this one can be discarded. (The files lists are
+# sorted, so the resulting commands lists are also sorted.)
+#
+for ($i = 0; $i < @files_mkdir_gpl - 1; $i++) {
+  if ($files_mkdir_gpl[$i + 1] =~ /^\Q$files_mkdir_gpl[$i]\E/) {
+    splice(@files_mkdir_gpl, $i, 1);
+    #
+    # Splicing deletes the element and moves all the rest down one
+    # (and reduces the array size). When the for-increment happens,
+    # then it's the equivalent of +2 instead of +1. So we -1 here to
+    # counteract the splice effect.
+    #
+    $i--;
+  }
+}
+for ($i = 0; $i < @files_mkdir_nda - 1; $i++) {
+  if ($files_mkdir_nda[$i + 1] =~ /^\Q$files_mkdir_nda[$i]\E/) {
+    splice(@files_mkdir_nda, $i, 1);
+    $i--;
+  }
+}
+
+#
+# Certain characters need to be escaped in the update script commands.
+# If they're not, the shell will interpret them, and then not get the
+# correct filename for the operation. For an rm command, this is
+# dangerous.
+#
+# The characters requiring escaping (for unix) are:
+#   9 - \t   38 - &    59 - ;     91 - [
+#  10 - \n   39 - '    60 - <     92 - \
+#  32 - ' '  40 - (    61 - =     96 - `
+#  33 - !    41 - )    62 - >    123 - {
+#  34 - "    42 - *    63 - ?    124 - |
+#  36 - $    58 - ;    64 - @
+#
+# Note that
+# 47 - /
+# is prohibited in filenames by virtue of the shell always counts it
+# as a pathname separator and nothing else.
+#
+# There are two loops here because of the way the files arrays are
+# constructed. The first loop handles the ones that are arrays of
+# filenames, the second loop handles the ones that are arrays of array
+# references (created by the [] construct earlier). The easy to spot
+# difference is the use of an array dereference.
+#
+dstamp "Escaping shell metacharacters in filenames...\n";
+for (@files_rm, @files_mkdir_gpl, @files_mkdir_nda,
+                @files_touch_gpl, @files_touch_nda) {
+  esc;
+}
+for (@files_ln_gpl, @files_ln_nda, @files_chmod_gpl, @files_chmod_nda) {
+  esc @$_[0];
+}
+
+#
+# The use of here documents in the following made it easier for me to
+# code (instead of tons of prints with escaped characters). The
+# script writing code is slightly harder to read as a result. Sorry.
+#
+dstamp "Writing SDK scripts...\n";
+open(SDK, ">$tree_new_short.sdk");
+print SDK <<END;
+#!/bin/sh
+
+#
+# SDK script v$version $date
+#
+# This script builds version $target_level of the firmware.
+#
+
+#
+# Variables
+#
+
+THIS=`basename \$0`
+TOOLS=m68k-elf-tools-20020410.tar.gz
+UCLINUX=uClinux-dist-20020927.tar.gz
+GPL_UPDATE=uClinux-$target_level.gpl
+NDA_UPDATE=uClinux-$target_level.nda
+GPL_LOG=\$GPL_UPDATE.log
+NDA_LOG=\$NDA_UPDATE.log
+UCLINUX_LOG=uClinux-$target_level.build.log
+
+WANT_ASSEMBLE=0
+WANT_TOOLCHAIN=0
+WANT_COMPILE=0
+
+DO_ASSEMBLE=1
+DO_TOOLCHAIN=1
+DO_COMPILE=1
+
+#
+# Functions
+#
+
+# Print a timestamp
+dstamp() {
+	echo "`date +'%a %b %e %H:%M:%S %Y'` \$*"
+}
+
+#
+# Main
+#
+
+# Parse command line
+while [ "\$1" != "" ]; do
+	case \$1 in
+		-h|--help)
+			echo "\$THIS v$version $date"
+			echo
+			echo "\$THIS -h"
+			echo "\$THIS [-a] [-t] [-c]"
+			echo
+			echo "Assembles, installs the toolchain for and compiles the"
+			echo "firmware version $target_level."
+			echo
+			echo "-h,--help	help"
+			echo "-a,--assemble	assemble the firmware tree"
+			echo "-t,--toolchain	install the toolchain"
+			echo "-c,--compile	compile the firmware tree"
+			exit 0
+			;;
+		-a|--assemble)
+			WANT_ASSEMBLE=1
+			;;
+		-t|--toolchain)
+			WANT_TOOLCHAIN=1
+			;;
+		-c|--compile)
+			WANT_COMPILE=1
+			;;
+		*)
+			echo "\$THIS: Error: Bad option '\$1'. '-h' for help."
+			exit 1
+	esac
+	shift
+done
+
+if [ \$WANT_ASSEMBLE -eq 1 ] || [ \$WANT_TOOLCHAIN -eq 1 ] ||
+						[ \$WANT_COMPILE -eq 1 ]; then
+	DO_ASSEMBLE=\$WANT_ASSEMBLE
+	DO_TOOLCHAIN=\$WANT_TOOLCHAIN
+	DO_COMPILE=\$WANT_COMPILE
+fi
+
+if [ \$DO_ASSEMBLE -eq 1 ]; then
+	# Check the version of patch(1) we have
+	PATCH_VERSION=`patch --version | head -n 1 | cut -d" " -f2`
+	PATCH_MAJOR=`echo \$PATCH_VERSION | cut -d. -f1`
+	PATCH_MINOR=`echo \$PATCH_VERSION | cut -d. -f2`
+	PATCH_PATCH=`echo \$PATCH_VERSION | cut -d. -f3`
+
+	# Set up the appropriate routine to handle doing the patching
+	if [ \$PATCH_MAJOR -le 2 ] && [ \$PATCH_MINOR -le 5 ] &&
+						[ \$PATCH_PATCH -le 4 ]; then
+		# Buggy patch workaround method, slower but safe
+		apply_patches() {
+			PATCHES=`awk '
+BEGIN {
+	last = 0
+}
+/^--- / {
+	if (last == 0) {
+		last = FNR
+	} else {
+		len = FNR - last
+		print last " " len
+		last = FNR
+	}
+}
+END {
+	len = FNR - last + 1
+	print last " " len
+}
+' \$0`
+
+			while [ "\$PATCHES" != "" ]; do
+				SKIP=`echo \$PATCHES | cut -d" " -f1`
+				LEN=`echo \$PATCHES | cut -d" " -f2`
+				PATCHES=`echo \$PATCHES | cut -d" " -f3-`
+				(tail -n +\$SKIP \$0 | head -n \$LEN - | $cmd_patch) || exit \$?
+			done
+		}
+	else
+		# Normal fast method
+		apply_patches() {
+			SKIP=`awk '
+/^__ITS_PATCHES_ALL_THE_WAY_DOWN__/ {
+	print FNR + 1
+	exit 0
+}
+' \$0`
+			(tail -n +\$SKIP \$0 | $cmd_patch) || exit \$?
+		}
+	fi
+	export -f apply_patches
+
+	# Handle uClinux
+	if [ ! -f \$UCLINUX ]; then
+		echo "\$THIS: Error: uClinux file missing '\$UCLINUX'"
+		exit 1
+	fi
+	if [ -e uClinux-dist ] || [ -e uClinux-$target_level ]; then
+		dstamp "Removing previous uClinux install..."
+		rm -rf uClinux-dist uClinux-$target_level
+	fi
+	dstamp "Unpacking uClinux..."
+	gunzip < \$UCLINUX | tar xf -
+	if [ \$? -ne 0 ]; then
+		echo "\$THIS: Error: Couldn't upack uClinux"
+		exit 1
+	fi
+
+	# Handle GPL update
+	if [ ! -f \$GPL_UPDATE ]; then
+		echo "\$THIS: Error: GPL update missing '\$GPL_UPDATE'"
+		exit 1
+	fi
+	dstamp "Updating (GPL) uClinux source..."
+	cd uClinux-dist
+	sh ../\$GPL_UPDATE > ../\$GPL_LOG 2>&1
+	if [ \$? -ne 0 ]; then
+		echo "\$THIS: Error: GPL update failed '\$GPL_UPDATE'."
+		echo "\$THIS: Error: Results in \$GPL_LOG."
+		exit 1
+	fi
+	cd ..
+	rm -f \$GPL_LOG
+
+	# Handle NDA update
+	if [ ! -f \$NDA_UPDATE ]; then
+		dstamp "NDA update not present, skipping..."
+	else
+		dstamp "Updating (NDA) uClinux source..."
+		cd uClinux-dist
+		sh ../\$NDA_UPDATE > ../\$NDA_LOG 2>&1
+		if [ \$? -ne 0 ]; then
+			echo "\$THIS: Error: NDA update failed '\$NDA_UPDATE'."
+			echo "\$THIS: Error: Results in \$NDA_LOG."
+			exit 1
+		fi
+		cd ..
+		rm -f \$NDA_LOG
+	fi
+
+	# Rename the source tree
+	mv uClinux-dist uClinux-$target_level
+	if [ \$? -ne 0 ]; then
+		echo "\$THIS: Error: Unable to rename uClinux source tree"
+		exit 1
+	fi
+fi
+
+if [ \$DO_TOOLCHAIN -eq 1 ]; then
+	which m68k-elf-gcc > /dev/null 2>&1
+	if [ \$? -eq 0 ]; then
+		dstamp "Toolchain previously installed, skipping..."
+	elif [ ! -f \$TOOLS ]; then
+		echo "\$THIS: Error: Toolchain file missing '\$TOOLS'"
+		exit 1
+	else
+		if [ `id -u` -ne 0 ]; then
+			echo "\$THIS: Error: You must be root to install the toolchain"
+			exit 1
+		fi
+		dstamp "Unpacking toolchain..."
+		OLD_DIR=`pwd`
+		cd /
+		gunzip < \$OLD_DIR/\$TOOLS | tar xf -
+		if [ \$? -ne 0 ]; then
+			echo "\$THIS: Error: Couldn't unpack toolchain"
+			exit 1
+		fi
+		cd \$OLD_DIR
+	fi
+
+fi
+
+if [ \$DO_COMPILE -eq 1 ]; then
+	if [ ! -d uClinux-$target_level ]; then
+		echo "\$THIS: Error: Couldn't find the firmware directory 'uClinux-$target_level'."
+		echo "\$THIS: Error: Try the '-a' flag."
+		exit 1
+	fi
+
+	which m68k-elf-gcc > /dev/null 2>&1
+	if [ \$? -ne 0 ]; then
+		echo "\$THIS: Error: Couldn't find the toolchain command 'm68k-elf-gcc'."
+		echo "\$THIS: Error: Try the '-t' flag."
+		exit 1
+	fi
+
+	# Compile the firmware once to make sure it's all good
+	dstamp "Compiling firmware..."
+	cd uClinux-$target_level
+	(make mrproper oldconfig && make dep all) > ../\$UCLINUX_LOG 2>&1
+	if [ \$? -ne 0 ]; then
+		echo "\$THIS: Error: Couldn't compile the firmware. Results in"
+		echo "\$THIS: Error: \$UCLINUX_LOG."
+		echo "\$THIS: Error: Please contact support."
+		exit 1
+	fi
+	cd ..
+	rm -f \$UCLINUX_LOG
+
+	# Check /tftpboot
+	if [ ! -d /tftpboot ]; then
+		echo "\$THIS: Warning: The firmware source tree expects"
+		echo "\$THIS: Warning: /tftpboot to be a directory. Since it is"
+		echo "\$THIS: Warning: not, all the images will be copied onto"
+		echo "\$THIS: Warning: the *file* /tftpboot. If you have TFTP"
+		echo "\$THIS: Warning: service installed and using a different"
+		echo "\$THIS: Warning: root directory, please update"
+		echo "\$THIS: Warning: uClinux-$target_level/vendors/vendor/product/Makefile"
+		echo "\$THIS: Warning: and"
+		echo "\$THIS: Warning: uClinux-$target_level/vendors/vendor/product/Makefile"
+		echo "\$THIS: Warning: appropriately."
+		rm -f /tftpboot
+	fi
+fi
+
+# Done
+dstamp "Done."
+END
+close(SDK);
+chmod 0755, "$tree_new_short.sdk";
+
+#
+# Order of operations:
+# 1: rms - they may be removing something for the first half of a
+#          delete and recreate transformation, say if a file is
+#          replaced by a directory
+# 2: mkdirs - they may provide the directory structure for the
+#             creation commands
+# 3: lns - creation commands go here, no particular ordering, except
+#          that they all must be done before the chmods
+# 4: touches
+# 5: patches
+# 6: chmods - must happen last to ensure correct permissions
+#
+# NOTE: The patch data (the patches themselves) are handled unusually.
+#       awk and tail combine to get the patches out of the script to
+#       patch to work on. It works. Why not use a here document? Here
+#       documents mangle binary data. This method does not. This
+#       command is now defined by the SDK script and used by the
+#       update scripts. This means buggy patch(1)es only have to be
+#       detected and worked around in one place.
+#
+open(GPL, ">$tree_new_short.gpl");
+print GPL <<END;
+#!/bin/sh
+
+#
+# SDK GPL update v$version $date
+#
+# This script contains the GPL update for the firmware version $target_level.
+#
+
+# Remove old files
+END
+for (@files_rm) {
+  print GPL "$cmd_rm $_ || exit \$?\n";
+}
+print GPL <<END;
+
+# Make directories
+END
+for (@files_mkdir_gpl) {
+  print GPL "$cmd_mkdir $_ || exit \$?\n";
+}
+print GPL <<END;
+
+# Create links
+END
+for (@files_ln_gpl) {
+  print GPL "$cmd_ln @$_[1] @$_[0] || exit \$?\n";
+}
+print GPL <<END;
+
+# Touch empty files
+END
+for (@files_touch_gpl) {
+  print GPL "$cmd_touch $_ || exit \$?\n";
+}
+print GPL <<END;
+
+# Patch the firmware; see uClinux-$target_level.sdk
+apply_patches
+
+# Fix permissions
+END
+for (@files_chmod_gpl) {
+  print GPL "$cmd_chmod " . sprintf("%o", @$_[1]) . " @$_[0] || exit \$?\n";
+}
+print GPL <<END;
+
+# Fine
+exit 0
+
+__ITS_PATCHES_ALL_THE_WAY_DOWN__
+END
+for (@files_patch_gpl) {
+  print GPL $_;
+}
+close(GPL);
+
+open(NDA, ">$tree_new_short.nda");
+print NDA <<END;
+#!/bin/sh
+
+#
+# SDK NDA update v$version $date
+#
+# This script contains the NDA update for the firmware version $target_level.
+#
+
+# Make directories
+END
+for (@files_mkdir_nda) {
+  print NDA "$cmd_mkdir $_ || exit \$?\n";
+}
+print NDA <<END;
+
+# Create links
+END
+for (@files_ln_nda) {
+  print NDA "$cmd_ln @$_[1] @$_[0] || exit \$?\n";
+}
+print NDA <<END;
+
+# Touch empty files
+END
+for (@files_touch_nda) {
+  print NDA "$cmd_touch $_ || exit \$?\n";
+}
+print NDA <<END;
+
+# Patch the firmware; see uClinux-$target_level.sdk
+apply_patches
+
+# Fix permissions
+END
+for (@files_chmod_nda) {
+  print NDA "$cmd_chmod " . sprintf("%o", @$_[1]) . " @$_[0] || exit \$?\n";
+}
+print NDA <<END;
+
+# Fine
+exit 0
+
+__ITS_PATCHES_ALL_THE_WAY_DOWN__
+END
+for (@files_patch_nda) {
+  print NDA $_;
+}
+close(NDA);
+
+dstamp "Packing the SDK...\n";
+do_system("tar cf - $tree_new_short.sdk $tree_new_short.gpl " .
+                   "$tree_new_short.nda | gzip > $tree_new_short.sdk.tar.gz");
+
+dstamp "Moving the SDK to the SCR...\n";
+$ftp = start_ftp();
+if (!$ftp->put("$tree_new_short.sdk.tar.gz")) {
+  # Save the error-status
+  $message = $ftp->message;
+  $i = $!;
+
+  # Don't leave a partial file on the remote machine
+  $ftp->delete("$tree_new_short.sdk.tar.gz");
+
+  warn "$this: Error: Couldn't put '$tree_new_short.sdk.tar.gz'\n";
+  # Restore the error-status
+  $ftp->message = $message;
+  $! = $i;
+  die "$this: Error: '" . $ftp->message . "'";
+}
+$ftp->quit();
+
+dstamp "Cleaning up...\n";
+do_system("rm -f $tree_new_short.sdk.tar.gz" .
+               " $tree_new_short.sdk" .
+               " $tree_new_short.gpl" .
+               " $tree_new_short.nda");
+#
+# If we really wanted self-cannibalisation, then the creation of the
+# new SDKs has overwritten the "old" ones from the SCR, and the above
+# rm has already cleared them up. So don't bother with a second
+# useless rm command.
+#
+if ($old_sdk && ($old_sdk != $target_level)) {
+  do_system("rm -f uClinux-$old_sdk.sdk.tar.gz" .
+                 " uClinux-$old_sdk.sdk" .
+                 " uClinux-$old_sdk.gpl" .
+                 " uClinux-$old_sdk.nda");
+}
+
+dstamp "Done.\n";
+$end = time();
+
+#
+# Mention the running time.
+#
+$total_time = $end - $start;
+$script_time = $total_time - $qtotal;
+($days, $hours, $minutes, $seconds) = pretty_time $script_time;
+print "   Script time: $days $hours:$minutes:$seconds\n";
+($days, $hours, $minutes, $seconds) = pretty_time $qtotal;
+print "Questions time: $days $hours:$minutes:$seconds\n";
+($days, $hours, $minutes, $seconds) = pretty_time $total_time;
+print "    Total time: $days $hours:$minutes:$seconds\n";

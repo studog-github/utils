@@ -1,0 +1,99 @@
+#!/bin/sh
+
+#
+# History
+#
+# Jul 04 2005 stuartm
+#
+# First release.
+#
+
+VERSION="v1.00 Jul 04 2005"
+
+#
+# This uses only shell builtins to set up the utilities for require() to use
+# at which point other utilities can be require()ed. This includes setting
+# up $basename and $THIS for die().
+#
+init_require() {
+  which which > /dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    echo "$0: Error: Required utility 'which' not found"
+    exit 1
+  fi
+  which basename > /dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    echo "$0: Error: Required utility 'basename' not found"
+    exit 127
+  fi
+  which=`which which`
+  basename=`which basename`
+  THIS=`$basename $0`
+}
+
+die() {
+  echo "$THIS: Error: $*"
+  exit 1
+}
+
+require() {
+  local util
+
+  util=`$which $1`
+  if [ $? -ne 0 ] || [ "$util" = "" ]; then
+    die "Required utility '$1' not found"
+  fi
+  eval "$1=$util"
+}
+
+#
+# Main
+#
+
+init_require
+
+require gunzip
+require tar
+require dirname
+require gzip
+require rm
+require awk
+
+while [ "$1" != "" ]; do
+  case $1 in
+    -h)
+      echo "$VERSION"
+      echo
+      echo "$THIS -h"
+      echo "$THIS <SDK>"
+      echo
+      echo "Specify a source SDK from which the GPL-only SDK will be created."
+      exit 0
+      ;;
+    *)
+      if [ "$SDK" = "" ]; then
+        SDK=$1
+      else
+        die "Too many arguments"
+      fi
+  esac
+  shift
+done
+
+[ "$SDK" = "" ] && die "Missing <SDK>"
+
+[ ! -f "$SDK" ] && die "$SDK is not a file"
+
+$gunzip < $SDK | $tar xf - || die "Couldn't unpack $SDK"
+
+DIR_SDK=`$dirname $SDK`
+if [ "$DIR_SDK" = "." ]; then
+  DIR_SDK=
+else
+  DIR_SDK="$DIR_SDK/"
+fi
+BASE_SDK=`$basename $SDK | $awk '{ match($1, "(.*).sdk.*", a); print a[1]; }'`
+
+$tar cf - $BASE_SDK.sdk $BASE_SDK.gpl | $gzip > ${DIR_SDK}$BASE_SDK.sdk.gpl-only.tar.gz || die "Couldn't pack ${DIR_SDK}$BASE_SDK.sdk.gpl-only.tar.gz"
+
+$rm -f $BASE_SDK.sdk $BASE_SDK.gpl $BASE_SDK.nda || die "Couldn'r clean up temporary files"
