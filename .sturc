@@ -76,8 +76,7 @@ alias studio='studio.sh'
 alias smu0='sudo minicom -D /dev/ttyUSB0'
 alias smu1='sudo minicom -D /dev/ttyUSB1'
 
-alias oldw='cd $HOME/old-sda/$HOME/work'
-alias oldp='cd $HOME/old-sda/$HOME/personal'
+alias sdlc_check='ssh dt "sdlc/status-sdlc-reboot.sh"'
 
 # Work around a bug in bash completion where 'time svn cleanup <tab>' causes an infinite loop of
 # bash: compopt: -o: option requires an argument
@@ -287,8 +286,9 @@ lock_init() {
 tiva_env() {
     export VA_HOME=$HOME/work/va
     export TIVAWARE_PATH=$VA_HOME/ti/SW-TM4C-2.1.4.178
-    export TOOLS_PATH=$VA_HOME/arm-developer/gcc-arm-none-eabi-6-2017-q2-update
-    export PATH=$PATH:$TOOLS_PATH/bin:$VA_HOME/ti/uniflash_4.3.1/node-webkit/
+    export TIVA_COMPILER_PATH=$VA_HOME/arm-developer/gcc-arm-none-eabi-6-2017-q2-update
+    export UNIFLASH_PATH=$VA_HOME/ti/uniflash_4.3.1
+    export PATH=$PATH:$TIVA_COMPILER_PATH/bin:$UNIFLASH_PATH:$UNIFLASH_PATH/node-webkit/
     alias uniflash='nw > /dev/null 2>&1 &'
 }
 
@@ -422,4 +422,8 @@ git() {
     # Set the tracking
     # TODO: Handle other paramters from original command here
     "$orig_git" push --set-upstream "$repo_remote" "$local_branch"
+}
+
+sfind() {
+    sudo find "$1" -iname "$2" -print0 2> /dev/null | xargs -0r ls -alF
 }
