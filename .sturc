@@ -73,8 +73,10 @@ alias chrome='/opt/google/chrome/chrome --use-gl=osmesa'
 alias chromenw='/opt/google/chrome/chrome --use-gl=osmesa --new-window'
 alias curldl='curl -OJL'
 alias studio='studio.sh'
-alias smu0='sudo minicom -D /dev/ttyUSB0'
-alias smu1='sudo minicom -D /dev/ttyUSB1'
+alias mu0='minicom -D /dev/ttyUSB0'
+alias mu1='minicom -D /dev/ttyUSB1'
+alias mcu0='minicom -D /dev/ttyUSB0 -C minicom.log'
+alias mcu1='minicom -D /dev/ttyUSB1 -C minicom.log'
 
 alias sdlc_check='ssh dt "sdlc/status-sdlc-reboot.sh"'
 
@@ -151,9 +153,11 @@ evi() {
 }
 
 miofiles() {
-   sudo mount -t cifs -o user=$USER,uid=$USER,gid=$USER,vers=2.0 //FS1/miofiles $HOME/miofiles
+   sudo mount -t cifs -o user=$USER,uid=$USER,gid=$USER,vers=2.0 //FS1/miofiles $HOME/miofiles &&
+   ln -s $HOME/miofiles/homedirs/smacdonald $HOME/miohome
 }
 umiofiles() {
+   rm $HOME/miohome &&
    sudo umount $HOME/miofiles
 }
 
@@ -427,3 +431,14 @@ git() {
 sfind() {
     sudo find "$1" -iname "$2" -print0 2> /dev/null | xargs -0r ls -alF
 }
+
+alias gt='cd $HOME/work/va/miovision/smartsense-bsp/tiva && tiva_env'
+
+# https://superuser.com/a/609141/609934
+# function that:
+# - runs the add user to group
+# - updates /etc/sudoers to allow password less su
+# - does the 'exec su -l $USER'
+# - restores /etc/sudoers
+# Thus making the sudo password be required for the sudoers update not the exec command,
+# where getting the password wrong loses the whole terminal
