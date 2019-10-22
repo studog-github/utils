@@ -472,3 +472,19 @@ downscale() {
 
     convert "$file" -quality "$quality" "${name}_${quality}quality.${ext}"
 }
+
+owatch() {
+    if [ "$1" = "-n" ]; then
+        shift
+        delay="$1"
+        shift
+    fi
+
+    while true; do
+        printf "\r%s" "$("$@")"
+        if [ ! -z "$delay" ]; then
+            sleep "$delay"
+        fi
+    done
+    printf "\n"
+}
