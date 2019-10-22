@@ -453,3 +453,13 @@ reset_usb() {
         echo "$dev" | sudo tee "$path/bind"
     done
 }
+
+# From https://unix.stackexchange.com/a/155540/173210
+crstat() {
+    for f in "$@"; do
+        inode=$(ls -di "$f" | cut -d' ' -f1)
+        fs=$(df "$f" | tail -1 | cut -d' ' -f1)
+        crtime=$(sudo debugfs -R 'stat <'"$inode"'>' "$fs" 2> /dev/null | grep -oP 'crtime.*--\s*\K.*')
+        printf "%s\t%s\n" "$crtime" "$f"
+    done
+}
