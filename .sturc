@@ -182,7 +182,10 @@ mirror_og() {
 }
 
 getlogs() {
-    scp $1:"/tmp/dmesg.gz /tmp/syslog.gz /tmp/messages.gz" .
+    #scp $1:"/tmp/dmesg.gz /tmp/syslog.gz /tmp/messages.gz" .
+    scp $1:"/tmp/dmesg.gz" .
+    scp $1:"/tmp/syslog.gz" .
+    scp $1:"/tmp/messages.gz" .
 }
 
 mcd() {
