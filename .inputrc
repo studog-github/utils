@@ -1,0 +1,3 @@
+$include /etc/inputrc
+
+set revert-all-at-newline on
