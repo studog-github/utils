@@ -463,3 +463,12 @@ crstat() {
         printf "%s\t%s\n" "$crtime" "$f"
     done
 }
+
+downscale() {
+    local file="$1"
+    local name="${file%.*}"
+    local ext="${file##*.}"
+    local quality="$2"
+
+    convert "$file" -quality "$quality" "${name}_${quality}quality.${ext}"
+}
