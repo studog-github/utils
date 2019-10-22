@@ -432,7 +432,7 @@ git() {
 }
 
 sfind() {
-    sudo find "$1" -iname "$2" -print0 2> /dev/null | xargs -0r ls -alF
+    sudo find "$1" -iname "$2" "${@:3}" -print0 2> /dev/null | xargs -0r ls -alFd
 }
 
 # https://superuser.com/a/609141/609934
