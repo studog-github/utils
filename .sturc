@@ -443,3 +443,13 @@ sfind() {
 # - restores /etc/sudoers
 # Thus making the sudo password be required for the sudoers update not the exec command,
 # where getting the password wrong loses the whole terminal
+
+reset_usb() {
+    for i in /sys/bus/pci/drivers/[uoex]hci[-_]hcd/*:*; do
+        [ -e "$i" ] || continue
+        dev="${i##*/}"
+        path="${i%/*}"
+        echo "$dev" | sudo tee "$path/unbind"
+        echo "$dev" | sudo tee "$path/bind"
+    done
+}
