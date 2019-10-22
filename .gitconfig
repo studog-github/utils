@@ -92,3 +92,5 @@
 	cmd = vim -f -d -c \"wincmd J\" \"$MERGED\" \"$LOCAL\" \"$BASE\" \"$REMOTE\"
 [merge]
 	tool = vimdiff3
+[rerere]
+	enabled = true
