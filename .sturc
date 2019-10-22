@@ -435,8 +435,6 @@ sfind() {
     sudo find "$1" -iname "$2" -print0 2> /dev/null | xargs -0r ls -alF
 }
 
-alias gt='cd $HOME/work/va/miovision/smartsense-bsp/tiva && tiva_env'
-
 # https://superuser.com/a/609141/609934
 # function that:
 # - runs the add user to group
