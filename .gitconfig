@@ -79,7 +79,6 @@
 # git update-ref refs/tags/NAME KEY
 [push]
 	default = simple
-	followTags = true
 [diff]
 	tool = vimdiff
 	algorithm = histogram
@@ -89,4 +88,3 @@
 	fsckObjects = true
 [fetch]
 	prune = true
-	pruneTags = true
