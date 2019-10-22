@@ -37,6 +37,46 @@
                   fi;  \
               }; f"
 	unadd = reset HEAD
+# Cache the fsck --unreachable output, then filter every time
+# Refactor orpahs and orphan-tags to use common code
+# Relating to https://stackoverflow.com/a/57095939/1352761
+	orphans = "!f() {  \
+	               local tmp_file=$(mktemp);  \
+	               local cache_file=\".git/orphaned_commits\";  \
+                       if [ \"$1\" = \"-d\" ] || [ \"$1\" = \"--delete-cache\" ]; then  \
+	                   rm -f \"$cache_file\";  \
+	                   return;  \
+	               fi;  \
+	               if [ \"$1\" = \"-r\" ] || [ \"$1\" = \"--rebuild-cache\" ]; then \
+	                   rm -f \"$cache_file\";  \
+	               fi;  \
+	               if [ ! -f \"$cache_file\" ]; then  \
+                           echo \"Please be patient, this might take a while...\";  \
+	                   git fsck --unreachable | grep commit | cut -d' ' -f3 > \"$tmp_file\";  \
+	                   mv \"$tmp_file\" \"$cache_file\";  \
+	               fi;  \
+	               xargs --arg-file=\"$cache_file\" --no-run-if-empty git log --merges --no-walk;  \
+                   }; f"
+	restash = "update-ref --create-reflog refs/stash"
+	orphan-tags = "!f() {  \
+	               local tmp_file=$(mktemp);  \
+	               local cache_file=\".git/orphaned_tags\";  \
+                       if [ \"$1\" = \"-d\" ] || [ \"$1\" = \"--delete-cache\" ]; then  \
+	                   rm -f \"$cache_file\";  \
+	                   return;  \
+	               fi;  \
+	               if [ \"$1\" = \"-r\" ] || [ \"$1\" = \"--rebuild-cache\" ]; then \
+	                   rm -f \"$cache_file\";  \
+	               fi;  \
+	               if [ ! -f \"$cache_file\" ]; then  \
+                           echo \"Please be patient, this might take a while...\";  \
+	                   git fsck --unreachable | grep tag | cut -d' ' -f3 > \"$tmp_file\";  \
+	                   mv \"$tmp_file\" \"$cache_file\";  \
+	               fi;  \
+	               xargs --arg-file=\"$cache_file\" --no-run-if-empty git show --no-patch;  \
+                   }; f"
+	retag = "update-ref --create-reflog refs/tags"
+# git update-ref refs/tags/NAME KEY
 [push]
 	default = simple
 	followTags = true
