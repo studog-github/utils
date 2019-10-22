@@ -94,3 +94,5 @@
 	tool = vimdiff3
 [rerere]
 	enabled = true
+[commit]
+	cleanup = scissors
