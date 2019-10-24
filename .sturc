@@ -387,7 +387,7 @@ git() {
         return
     fi
 
-    repo_remotes=( $(git remote show) )
+    repo_remotes=( $("$orig_git" remote show) )
     if [ ${#repo_remotes[@]} -ne 1 ]; then
         # Can't know which remote to use if there are more than one
         # Zero remotes is a bare or broken repository
@@ -396,16 +396,16 @@ git() {
     fi
     repo_remote="${repo_remotes[0]}"
 
-    local_branch="$(git symbolic-ref --short HEAD)"
+    local_branch="$("$orig_git" symbolic-ref --short HEAD)"
 
-    branch__remote="$(git config branch.${local_branch}.remote)"
+    branch__remote="$("$orig_git" config branch.${local_branch}.remote)"
     if [ -n "$branch__remote" ]; then
         # remote already configured, nothing to do
         "$orig_git" "$@"
         return
     fi
 
-    branch__merge="$(git config branch.${local_branch}.merge)"
+    branch__merge="$("$orig_git" config branch.${local_branch}.merge)"
     if [ -n "$branch__merge" ]; then
         # merge already configured, nothing to do
         "$orig_git" "$@"
