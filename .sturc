@@ -367,7 +367,7 @@ git() {
     local repo_remotes
     local repo_remote
     local local_branch
-    local branch__remote
+##    local branch__remote
     local branch__merge
 
     # Assume that $1 is the command, push, help, etc
@@ -398,12 +398,16 @@ git() {
 
     local_branch="$("$orig_git" symbolic-ref --short HEAD)"
 
-    branch__remote="$("$orig_git" config branch.${local_branch}.remote)"
-    if [ -n "$branch__remote" ]; then
-        # remote already configured, nothing to do
-        "$orig_git" "$@"
-        return
-    fi
+# I had a branch that had name.remote configured but not name.merge. This check
+# deferred to git, which failed the push due to no upstream tracking.
+# For now it looks like checking name.remote is unnecessary, name.merge is
+# sufficient to determine if upsteam tracking is set. Commented out.
+##    branch__remote="$("$orig_git" config branch.${local_branch}.remo0te)"
+##    if [ -n "$branch__remote" ]; then
+##        # remote already configured, nothing to do
+##        "$orig_git" "$@"
+##        return
+##    fi
 
     branch__merge="$("$orig_git" config branch.${local_branch}.merge)"
     if [ -n "$branch__merge" ]; then
