@@ -2,10 +2,13 @@
 # --global: ~/.gitconfig or ~/.config/git/config
 # in repo aka --local: .git/config
 
-[user]
-	# Prefer per-repo settings to allow for different identities
-	name = ""
-	email = ""
+# Prefer settings based on organization
+# includeIf requires v2.13+
+[includeIf "gitdir:work/"]
+	path = .gitconfig-work
+[includeIf "gitdir:personal/"]
+	path = .gitconfig-personal
+
 [core]
 	autocrlf = input
 	safecrlf = true
