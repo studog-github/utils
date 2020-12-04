@@ -18,6 +18,11 @@ export HISTTIMEFORMAT="$(tput setaf 6)%F %T$(tput sgr0)  "
 #export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
 #export PROMPT_COMMAND='export PS1=$(gitprompt.pl)'
 
+# __git_ps1() under Git for Windows takes so so long; timed it at 3 seconds.
+# Remove it from the prompt for now.
+# Actually, added a custom .config/git/git-promtp.sh which overrides the
+# shipped one.
+
 # Turn off flow control; ctrl-s and ctrl-q won't stop/start output anymore, but bash's forward
 # history search ctrl-s will work
 stty -ixon
