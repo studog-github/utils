@@ -34,14 +34,16 @@ stty -ixon
 ###https://unix.stackexchange.com/a/470042/173210
 
 # Fix Ubuntu security holes
-# Affected: 14.04 16.04 18.04
+# Affected: 14.04 16.04 18.04 20.04
 PATH=${PATH//$HOME\/bin:}
-if [ -d "$HOME/bin" ] ; then
-    PATH+=":$HOME/bin"
+PATH+=":$HOME/bin"
+if [ ! -d "$HOME/bin" ] ; then
+    mkdir "$HOME/bin"
 fi
 PATH=${PATH//$HOME\/.local\/bin:}
-if [ -d "$HOME/.local/bin" ]; then
-    PATH+=":$HOME/.local/bin"
+PATH+=":$HOME/.local/bin"
+if [ ! -d "$HOME/.local/bin" ]; then
+    mkdir "$HOME/.local/bin"
 fi
 PATH+=":$HOME/work/Knect/TI/cg_xml/bin"
 PATH+=":$HOME/work/Knect/TI/cg_xml/utils"
