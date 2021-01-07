@@ -80,6 +80,16 @@
                    }; f"
 	retag = "update-ref --create-reflog refs/tags"
 # git update-ref refs/tags/NAME KEY
+        unsaved = "!f() {  \
+                    echo '=====[ Unpushed commits ]==================================================';  \
+                    git branch -v;  \
+                    echo '=====[ Uncommited work ]===================================================';  \
+                    git status;  \
+                    echo '=====[ Uncommited stashes ]================================================';  \
+                    git stash list;  \
+                    echo '=====[ Unpushed tags ]=====================================================';  \
+                    git push --tags --dry-run;  \
+                   }; f"
 [push]
 	default = simple
 [diff]
