@@ -78,6 +78,7 @@ alias mu0='minicom -D /dev/ttyUSB0'
 alias mu1='minicom -D /dev/ttyUSB1'
 alias mcu0='minicom -D /dev/ttyUSB0 -C minicom-0.log'
 alias mcu1='minicom -D /dev/ttyUSB1 -C minicom-1.log'
+alias clf='/c/Program\ Files/LLVM/bin/clang-format.exe'
 
 alias sdlc_check='ssh dt "sdlc/status-sdlc-reboot.sh"'
 
