@@ -42,7 +42,7 @@
               }; f"
 	unadd = reset HEAD
 # Cache the fsck --unreachable output, then filter every time
-# Refactor orpahs and orphan-tags to use common code
+# Refactor orphans and orphan-tags to use common code
 # Relating to https://stackoverflow.com/a/57095939/1352761
 	orphans = "!f() {  \
 	               local tmp_file=$(mktemp);  \
