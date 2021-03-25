@@ -16,6 +16,7 @@
 [alias]
 	co = checkout
 	st = status
+	sti = status --ignored
 	rst = -c status.relativePaths=false status
 	cp = cherry-pick -x
 	k = log --graph --abbrev-commit --pretty=oneline --decorate
