@@ -494,3 +494,9 @@ owatch() {
     done
     printf "\n"
 }
+
+#sgrep() {
+    # Saving grep, save results for later reuse
+    # Add and handle --save-file
+    # grep "args" --exclude='save_file' | tee 'save_file'
+#}
