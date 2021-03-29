@@ -1,0 +1,22 @@
+#!/bin/bash
+
+THIS="${0##*/}"
+THIS_PATH="$(readlink --canonicalize ${0%/*})"
+
+# Thoughts
+# 1. Maybe should install relative paths in the links?
+# 2. One script to install/uninstall
+
+create_link() {
+    SRC="$1"
+    DST="$2"
+
+    if [ ! -L "$DST" ]; then
+        ln -s "$(readlink --canonicalize "$SRC")" "$DST"
+    fi
+}
+
+create_link .sturc $HOME
+create_link .gitconfig $HOME
+create_link .gitconfig-personal $HOME
+create_link .vimrc $HOME
