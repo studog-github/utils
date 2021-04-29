@@ -82,6 +82,8 @@ alias clf='/c/Program\ Files/LLVM/bin/clang-format.exe'
 
 alias sdlc_check='ssh dt "sdlc/status-sdlc-reboot.sh"'
 
+alias cpptags='ctags --c++-kinds=+p --fields=+iaS --extras=+q --language-force=C++'
+
 # Work around a bug in bash completion where 'time svn cleanup <tab>' causes an infinite loop of
 # bash: compopt: -o: option requires an argument
 # compopt: usage: compopt [-o|+o option] [-DE] [name ...]
