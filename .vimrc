@@ -1,5 +1,6 @@
 " TODO:
 " ( ) Debug "no matching autocommands" when doing ':w' from ':Gdiff' window
+" ( ) protect the solarized colorscheme line against missing solarized
 
 " Pathogen for now, Vim 8.0 native management later
 
@@ -30,6 +31,8 @@ set wildmenu
 let mapleader="\\"
 nnoremap <silent> <leader><space> :noh<cr>
 set formatoptions+=j
+set encoding=utf8
+"set fileencodings+=utf8,latin1
 
 " Solarized default values, don't recall why I have them listed out
 " let g:solarized_termtrans=0
@@ -62,6 +65,7 @@ autocmd FileType * setlocal formatoptions-=o
 
 autocmd Filetype python setlocal expandtab shiftwidth=4 smarttab
 autocmd Filetype c setlocal expandtab shiftwidth=4 smarttab
+autocmd Filetype po setlocal encoding=utf-8
 
 " Only works when it's a bare variable; inside an autogroup it gets set too late and c syntax
 " doesn't see it. This should be dynamic.
@@ -121,3 +125,8 @@ endfunction
 
 " Always be last, source local vim if exists
 silent! source .vimlocal
+
+" From https://gist.github.com/atripes/15372281209daf5678cded1d410e6c16
+" URL encode/decode selection
+" vnoremap <leader>en :!python -c 'import sys,urllib;print urllib.quote(sys.stdin.read().strip())'<cr>
+" vnoremap <leader>de :!python -c 'import sys,urllib;print urllib.unquote(sys.stdin.read().strip())'<cr>

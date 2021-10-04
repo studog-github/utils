@@ -1,3 +1,6 @@
+# TODO:
+# ( ) Employ $FUNCNAME ?
+
 # WARNING!
 # bash sets history state immediately when HISTSIZE et al are set. Therefore it
 # is not sufficient to override these variables, you must comment out previous
@@ -8,12 +11,13 @@
 # unlimited history like I wanted, just the default amount of history. :-(
 #
 # All the history!
+# ( ) Detect when there are existing versions of the variables and flag a warning
 export HISTSIZE=-1
 export HISTFILESIZE=-1
 #export HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S  "
 export HISTTIMEFORMAT="$(tput setaf 6)%F %T$(tput sgr0)  "
 
-# Hack to make one terminal's history immediately avilable to other terminals
+# Hack to make one terminal's history immediately available to other terminals
 # append to history file, clear local history, reread history from file
 #export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
 #export PROMPT_COMMAND='export PS1=$(gitprompt.pl)'
@@ -22,6 +26,7 @@ export HISTTIMEFORMAT="$(tput setaf 6)%F %T$(tput sgr0)  "
 # history search ctrl-s will work
 stty -ixon
 
+### This is superceded by the .dircolors detection in .bashrc
 ###if [ -n "$DISPLAY" ] && [ "$TERM" == "xterm" ]; then
 ###   export TERM=gnome-256color
 ###   export COLORTERM=gnome-256color
@@ -67,8 +72,10 @@ alias tree='/usr/bin/tree -a'
 # Aug 22 07:21:40 L247 org.gnome.Shell.desktop[3587]: [3958:3958:0822/072140.780496:ERROR:gl_surface_presentation_helper.cc(115)] GetVSyncParametersIfAvailable() failed!
 # messages. The actual value isn't important, as long as it prevents whatever the existing default is from being used.
 # Chrome 69 apparently has a fix for this, see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=901831
-alias chrome='/opt/google/chrome/chrome --use-gl=osmesa'
-alias chromenw='/opt/google/chrome/chrome --use-gl=osmesa --new-window'
+#alias chrome='/opt/google/chrome/chrome --use-gl=osmesa'
+#alias chromenw='/opt/google/chrome/chrome --use-gl=osmesa --new-window'
+alias chromenw='/opt/google/chrome/chrome --new-window'
+alias chromedt='/opt/google/chrome/chrome --auto-open-devtools-for-tabs'
 alias curldl='curl -OJL'
 alias studio='studio.sh'
 alias mu0='minicom -D /dev/ttyUSB0'
@@ -78,6 +85,8 @@ alias mcu1='minicom -D /dev/ttyUSB1 -C minicom-1.log'
 
 alias sdlc_check='ssh dt "sdlc/status-sdlc-reboot.sh"'
 
+# Overriding the default alias from .bashrc, so preserve the color setting
+alias grep='grep --color=auto --exclude=tags --exclude=cscope.out'
 # Work around a bug in bash completion where 'time svn cleanup <tab>' causes an infinite loop of
 # bash: compopt: -o: option requires an argument
 # compopt: usage: compopt [-o|+o option] [-DE] [name ...]
@@ -187,7 +196,11 @@ getlogs() {
 }
 
 mcd() {
-   [ ! -d "$1" ] && mkdir -p "$1"
+   if [ ! -d "$1" ]; then
+      mkdir -p "$1"
+   else
+      echo "$1 already exists"
+   fi
    cd "$1"
 }
 
@@ -409,6 +422,7 @@ git() {
 
     branch__merge="$("$orig_git" config branch.${local_branch}.merge)"
     if [ -n "$branch__merge" ]; then
+# Detect a branch rename, and offer to rename the remote?
         # merge already configured, nothing to do
         "$orig_git" "$@"
         return
@@ -489,6 +503,35 @@ owatch() {
         fi
     done
     printf "\n"
+}
+
+apt-list-installed() {
+    grep " install " /var/log/dpkg.log
+}
+
+
+getvbox() {
+    [ -n "$1" ]  || (echo "Missing version number"; exit 1)
+    wget --mirror "https://download.virtualbox.org/virtualbox/$1/"
+}
+
+alias robo3t='$HOME/work/robo3t/robo3t-1.2.1-linux-x86_64-3e50a65/bin/robo3t &>> /dev/null &'
+
+setlocale() {
+    export LC_ALL="$1" LANG="$1" LANGUAGE="$1"
+}
+
+mklink() {
+    # 1 = source, 2 = dest path, 3 = renamed dest (optional)
+    ##SRC_NAME="${1##*/}"
+    ##SRC_PATH="${1%/*}"
+    SOURCE="$(readlink -f "$1")"
+    if [ -n "$3" ]; then
+        DEST="$(readlink -f "$2/$3")"
+    else
+        DEST="$(readlink -f "$2")"
+    fi
+    ln -s "$SOURCE" "$DEST"
 }
 
 btprofile() {

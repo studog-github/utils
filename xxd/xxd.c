@@ -7,7 +7,8 @@
 
 #include "xxd.h"
 
-static char printable(char c) {
+static char printable(char c)
+{
    if (c < 0x20 || c > 0x7e)
       return '.';
    return c;
@@ -17,7 +18,8 @@ static char printable(char c) {
 static char line[LINE_LEN];
 #define ASCII_OFFSET   51
 
-void xxd(unsigned char *buf, unsigned int len, int (*print)(const char *format, ...)) {
+void xxd(unsigned char *buf, unsigned int len, int (*print)(const char *format, ...))
+{
    unsigned int i;
    unsigned int j;
    char *xptr;
