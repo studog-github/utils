@@ -50,8 +50,8 @@ PATH+=":$HOME/work/Knect/TI/cg_xml/utils"
 PATH+=":/opt/ti/ccsv6/tools/compiler/ti-cgt-msp430_16.6.0.STS/bin"
 PATH+=":/opt/android-studio/bin"
 export PATH
-export LANG="C"
-export LANGUAGE="C"
+export LANG="C.UTF-8"
+export LANGUAGE="C.UTF-8"
 export EDITOR=vim
 export VISUAL=vim
 
