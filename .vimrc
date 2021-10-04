@@ -14,6 +14,14 @@ let g:pathogen_disabled = []
 " .vimrc. I never want that, and 'call' is safer. 'execute' is like eval.
 call pathogen#infect()
 
+
+" New on-Windows settings
+syntax on
+set softtabstop=-1
+set shiftwidth=4
+set expandtab
+set noautoindent
+
 set modeline
 set background=dark
 set nobackup

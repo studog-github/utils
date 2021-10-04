@@ -22,6 +22,11 @@ export HISTTIMEFORMAT="$(tput setaf 6)%F %T$(tput sgr0)  "
 #export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
 #export PROMPT_COMMAND='export PS1=$(gitprompt.pl)'
 
+# __git_ps1() under Git for Windows takes so so long; timed it at 3 seconds.
+# Remove it from the prompt for now.
+# Actually, added a custom .config/git/git-promtp.sh which overrides the
+# shipped one.
+
 # Turn off flow control; ctrl-s and ctrl-q won't stop/start output anymore, but bash's forward
 # history search ctrl-s will work
 stty -ixon
@@ -82,11 +87,14 @@ alias mu0='minicom -D /dev/ttyUSB0'
 alias mu1='minicom -D /dev/ttyUSB1'
 alias mcu0='minicom -D /dev/ttyUSB0 -C minicom-0.log'
 alias mcu1='minicom -D /dev/ttyUSB1 -C minicom-1.log'
+alias clf='/c/Program\ Files/LLVM/bin/clang-format.exe'
 
 alias sdlc_check='ssh dt "sdlc/status-sdlc-reboot.sh"'
 
 # Overriding the default alias from .bashrc, so preserve the color setting
 alias grep='grep --color=auto --exclude=tags --exclude=cscope.out'
+alias cpptags='ctags --c++-kinds=+p --fields=+iaS --extras=+q --language-force=C++'
+
 # Work around a bug in bash completion where 'time svn cleanup <tab>' causes an infinite loop of
 # bash: compopt: -o: option requires an argument
 # compopt: usage: compopt [-o|+o option] [-DE] [name ...]
@@ -509,7 +517,6 @@ apt-list-installed() {
     grep " install " /var/log/dpkg.log
 }
 
-
 getvbox() {
     [ -n "$1" ]  || (echo "Missing version number"; exit 1)
     wget --mirror "https://download.virtualbox.org/virtualbox/$1/"
@@ -558,3 +565,9 @@ btprofile() {
 
     pactl set-card-profile "${btcard}" "${profile}"
 }
+
+#sgrep() {
+    # Saving grep, save results for later reuse
+    # Add and handle --save-file
+    # grep "args" --exclude='save_file' | tee 'save_file'
+#}

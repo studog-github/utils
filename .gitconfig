@@ -2,10 +2,20 @@
 # --global: ~/.gitconfig or ~/.config/git/config
 # in repo aka --local: .git/config
 
+# Prefer settings based on organization
+# includeIf requires v2.13+
+
+# Default settings
 [user]
-	# Prefer per-repo settings to allow for different identities
-	name = ""
-	email = ""
+	name = Stuart MacDonald
+	email = smacdonald@2grobotics.com
+[core]
+	sshCommand = "ssh -i ~/.ssh/id_rsa.smacdonald_github"
+
+# Override with personal settings when needed
+[includeIf "gitdir:~/personal/"]
+	path = ~/.gitconfig-personal
+
 [core]
 	autocrlf = input
 	safecrlf = true
@@ -13,6 +23,7 @@
 [alias]
 	co = checkout
 	st = status
+	sti = status --ignored
 	rst = -c status.relativePaths=false status
 	cp = cherry-pick -x
 	k = log --graph --abbrev-commit --pretty=oneline --decorate
@@ -38,7 +49,7 @@
               }; f"
 	unadd = reset HEAD
 # Cache the fsck --unreachable output, then filter every time
-# Refactor orpahs and orphan-tags to use common code
+# Refactor orphans and orphan-tags to use common code
 # Relating to https://stackoverflow.com/a/57095939/1352761
 	orphans = "!f() {  \
 	               local tmp_file=$(mktemp);  \
@@ -77,6 +88,17 @@
                    }; f"
 	retag = "update-ref --create-reflog refs/tags"
 # git update-ref refs/tags/NAME KEY
+        us = unsaved
+        unsaved = "!f() {  \
+                    echo '=====[ Unpushed commits ]==================================================';  \
+                    git branch -v;  \
+                    echo '=====[ Uncommited work ]===================================================';  \
+                    git status;  \
+                    echo '=====[ Uncommited stashes ]================================================';  \
+                    git stash list;  \
+                    echo '=====[ Unpushed tags ]=====================================================';  \
+                    git push --tags --dry-run;  \
+                   }; f"
 [push]
 	default = simple
 [diff]
@@ -96,3 +118,8 @@
 	enabled = true
 [commit]
 	cleanup = scissors
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true

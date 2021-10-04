@@ -1,0 +1,7 @@
+//        private:
+//  ProcessingEntry(const ProcessingEntry&);
+//  ProcessingEntry& operator=(const ProcessingEntry&);
+
+Add specific constructors to the struct but makethem private to help locate where
+a member unique_ptr is trying to be copied by a copy constructor. MSVC 14 2015 does
+not have clear error messaging around this.
