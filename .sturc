@@ -490,3 +490,28 @@ owatch() {
     done
     printf "\n"
 }
+
+btprofile() {
+    # Helpful info
+    # https://dev.to/ugjka/switch-between-hsp-hfp-and-a2dp-from-system-tray-g6b
+    # https://forums.linuxmint.com/viewtopic.php?p=1650517#p1650517
+
+    # Find your card with: pactl list cards
+    local btcard="bluez_card.94_DB_56_54_74_2D"
+    local profile="${1,,}"
+
+    case "$profile" in
+        a2dp)
+            profile="a2dp_sink"
+            ;;
+        hfp)
+            profile="headset_head_unit"
+            ;;
+        *)
+            echo "Unknown profile '${1}'"
+            return 1
+            ;;
+    esac
+
+    pactl set-card-profile "${btcard}" "${profile}"
+}
