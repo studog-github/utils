@@ -7,10 +7,14 @@
 
 # Default settings
 [user]
-	name = Stuart MacDonald
-	email = 
+	name =
+	email =
 [core]
-	sshCommand = "ssh -i ~/.ssh/id_rsa."
+	sshCommand = "ssh -i ~/.ssh/id_rsa.pub"
+
+# Override with work settings when needed
+[includeIf "gitdir:~/work/"]
+	path = ~/.gitconfig-work
 
 # Override with personal settings when needed
 [includeIf "gitdir:~/personal/"]
