@@ -8,9 +8,9 @@
 # Default settings
 [user]
 	name = Stuart MacDonald
-	email = smacdonald@2grobotics.com
+	email = 
 [core]
-	sshCommand = "ssh -i ~/.ssh/id_rsa.smacdonald_github"
+	sshCommand = "ssh -i ~/.ssh/id_rsa."
 
 # Override with personal settings when needed
 [includeIf "gitdir:~/personal/"]
