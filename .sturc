@@ -571,3 +571,7 @@ btprofile() {
     # Add and handle --save-file
     # grep "args" --exclude='save_file' | tee 'save_file'
 #}
+
+if [ -f ~/.stulocalrc ]; then
+    . ~/.stulocalrc
+fi
