@@ -20,3 +20,8 @@ create_link .sturc $HOME
 create_link .gitconfig $HOME
 create_link .gitconfig-personal $HOME
 create_link .vimrc $HOME
+
+# sudoers has to be root:root 440 so copy it instead of linking
+sudo cp sudoers_stu /etc/sudoers.d
+sudo chown root:root /etc/sudoers.d/sudoers_stu
+sudo chmod 440 /etc/sudoers.d/sudoers_stu
