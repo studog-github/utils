@@ -1,0 +1,5 @@
+# Stu's modifications
+# Increase the password timeout
+Defaults	timestamp_timeout=600
+# Don't ask on each new terminal window
+Defaults	!tty_tickets
