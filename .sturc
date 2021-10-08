@@ -12,6 +12,7 @@
 #
 # All the history!
 # ( ) Detect when there are existing versions of the variables and flag a warning
+export HISTCONTROL=ignoreboth
 export HISTSIZE=-1
 export HISTFILESIZE=-1
 #export HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S  "
