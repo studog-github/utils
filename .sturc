@@ -93,6 +93,8 @@ alias mcu1='minicom -D /dev/ttyUSB1 -C minicom-1.log'
 alias grep='grep --color=auto --exclude=tags --exclude=cscope.out'
 alias cpptags='ctags --c++-kinds=+p --fields=+iaS --extras=+q --language-force=C++'
 
+alias mdig='dig @224.0.0.251 -p 5353'
+
 # Work around a bug in bash completion where 'time svn cleanup <tab>' causes an infinite loop of
 # bash: compopt: -o: option requires an argument
 # compopt: usage: compopt [-o|+o option] [-DE] [name ...]
