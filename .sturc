@@ -519,6 +519,10 @@ btprofile() {
         hfp)
             profile="headset_head_unit"
             ;;
+        '')
+            pactl list cards | awk 'found==1 && /Active Profile: .*/ { print $3 } /Name: '${btcard}'/ { found=1 }'
+            return 0
+            ;;
         *)
             echo "Unknown profile '${1}'"
             return 1
