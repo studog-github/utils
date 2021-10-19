@@ -520,6 +520,8 @@ btprofile() {
             profile="headset_head_unit"
             ;;
         '')
+#        ''|swap)
+            # TODO: Add a swap/toggle target
             pactl list cards | awk 'found==1 && /Active Profile: .*/ { print $3 } /Name: '${btcard}'/ { found=1 }'
             return 0
             ;;
