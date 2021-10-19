@@ -10,7 +10,7 @@
 	name =
 	email =
 [core]
-	sshCommand = "ssh -i ~/.ssh/id_rsa.pub"
+	sshCommand = ""
 
 # Override with work settings when needed
 [includeIf "gitdir:~/work/"]
