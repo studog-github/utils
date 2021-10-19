@@ -27,14 +27,14 @@ endif
 " Pathogen for now, Vim 8.0 native management later
 
 " To disable a plugin, add its bundle name to the following list
-let g:pathogen_disabled = []
+"let g:pathogen_disabled = []
 "call add(g:pathogen_disabled, 'conflict-marker.vim')
 "call add(g:pathogen_disabled, 'vim-colors-solarized')
 "call add(g:pathogen_disabled, 'vim-fugitive')
 
 " The only reason to 'execute' instead of 'call' is so pathogen can disable your
 " .vimrc. I never want that, and 'call' is safer. 'execute' is like eval.
-call pathogen#infect()
+"call pathogen#infect()
 
 
 " New on-Windows settings
