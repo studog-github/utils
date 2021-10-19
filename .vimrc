@@ -2,6 +2,28 @@
 " ( ) Debug "no matching autocommands" when doing ':w' from ':Gdiff' window
 " ( ) protect the solarized colorscheme line against missing solarized
 
+" Vim 8 includes a new defaults file so users without their own .vimrc can get
+" sensible defaults. Sounds nice, but using it is skipped when they do have a
+" .vimrc. This causes fugitive to break. :-(
+" The sequence is:
+" - ttimeout/len defaults to off/-1 internally to Vim
+" - defaults.vim sets it to on/100 (which fugitive relies on)
+" - I add my .vimrc
+" - defaults.vim is skipped and the internal values are used
+" Fixing this is easy: set ttimeout/len appropriately. I don't already do that,
+" so previous Vims must have set this instead. Unclear if that was internally
+" or from a distribution's system vimrc or what.
+" For now, using Vim's recommended method for handling the new defaults.vim
+" which is to source it. I may change this to just adding the defaults I need
+" instead, but the help points out changes to defaults.vim won't be picked up
+" in that case.
+" Added a check for the file itself, rather than Vim version 8. It's the source
+" of truth, and development versions of Vim 7 used it.
+if filereadable(expand('$VIMRUNTIME/defaults.vim'))
+    unlet! skip_defaults_vim
+    source $VIMRUNTIME/defaults.vim
+endif
+
 " Pathogen for now, Vim 8.0 native management later
 
 " To disable a plugin, add its bundle name to the following list
