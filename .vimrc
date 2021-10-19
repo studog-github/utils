@@ -4,15 +4,7 @@
 
 " Vim 8 includes a new defaults file so users without their own .vimrc can get
 " sensible defaults. Sounds nice, but using it is skipped when they do have a
-" .vimrc. This causes fugitive to break. :-(
-" The sequence is:
-" - ttimeout/len defaults to off/-1 internally to Vim
-" - defaults.vim sets it to on/100 (which fugitive relies on)
-" - I add my .vimrc
-" - defaults.vim is skipped and the internal values are used
-" Fixing this is easy: set ttimeout/len appropriately. I don't already do that,
-" so previous Vims must have set this instead. Unclear if that was internally
-" or from a distribution's system vimrc or what.
+" .vimrc. This can cause things to break.
 " For now, using Vim's recommended method for handling the new defaults.vim
 " which is to source it. I may change this to just adding the defaults I need
 " instead, but the help points out changes to defaults.vim won't be picked up
