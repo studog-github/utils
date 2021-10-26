@@ -94,6 +94,7 @@ alias grep='grep --color=auto --exclude=tags --exclude=cscope.out'
 alias cpptags='ctags --c++-kinds=+p --fields=+iaS --extras=+q --language-force=C++'
 
 alias mdig='dig @224.0.0.251 -p 5353'
+alias pssh='parallel-ssh'
 
 # Work around a bug in bash completion where 'time svn cleanup <tab>' causes an infinite loop of
 # bash: compopt: -o: option requires an argument
