@@ -479,7 +479,10 @@ owatch() {
 }
 
 apt-list-installed() {
-    grep " install " /var/log/dpkg.log
+    zgrep --color=always --no-filename " install " /var/log/dpkg.log* | sort
+}
+apt-list-upgraded() {
+    zgrep --color=always --no-filename " upgrade " /var/log/dpkg.log* | sort
 }
 
 getvbox() {
