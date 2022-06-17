@@ -25,7 +25,7 @@ export HISTTIMEFORMAT="$(tput setaf 6)%F %T$(tput sgr0)  "
 
 # __git_ps1() under Git for Windows takes so so long; timed it at 3 seconds.
 # Remove it from the prompt for now.
-# Actually, added a custom .config/git/git-promtp.sh which overrides the
+# Actually, added a custom .config/git/git-prompt.sh which overrides the
 # shipped one.
 
 # Turn off flow control; ctrl-s and ctrl-q won't stop/start output anymore, but bash's forward
