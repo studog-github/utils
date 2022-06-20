@@ -544,6 +544,8 @@ btprofile() {
     # grep "args" --exclude='save_file' | tee 'save_file'
 #}
 
+# headtail: From https://stackoverflow.com/a/44849814/1352761
+
 if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
