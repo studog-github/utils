@@ -550,6 +550,9 @@ btprofile() {
 # From https://serverfault.com/a/888300/432437
 # ssh-keygen -lf ~/.ssh/authorized_keys # gives the whole list, then match with the log
 
+# Bash parsing arguments
+# https://stackoverflow.com/a/14203146/1352761
+
 if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
