@@ -1,0 +1,8 @@
+has_gui() {
+    # Based on https://stackoverflow.com/a/64889211/1352761
+    if [[ ! -z "$DISPLAY" && -z "$SSH_CONNECTION" ]]; then
+        _HAS_GUI=1
+    else
+        _HAS_GUI=0
+    fi
+}
