@@ -323,7 +323,7 @@ sudof() {
 # - there is exactly one remote configured
 # - the local branch name does not exist on the remote
 # then:
-# - automatically set the tracking to remove/branch on a default 'git push'
+# - automatically set the tracking to remote/branch on a default 'git push'
 # 2) Be able to do this with the standard 'git push' command without resorting to
 # changing the command in any way.
 #
