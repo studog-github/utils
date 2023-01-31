@@ -353,9 +353,18 @@ git() {
     local local_branch
 ##    local branch__remote
     local branch__merge
+    local PRINT_TIP=0
+
+    # Check if Stu needs to know what went wrong
+    # -v not currently in use by bare-git
+    if [ "$1" == "-v" ]; then
+        local PRINT_TIP=1
+        shift
+    fi
 
     # Assume that $1 is the command, push, help, etc
     if [ "$1" != "push" ]; then
+        [ $PRINT_TIP -eq 1 ] && echo "stu's git: Not a push attempt"
         "$orig_git" "$@"
         return
     fi
@@ -367,6 +376,7 @@ git() {
 
     if [[ "${param_string}" =~ ,,-u,, ]] ||
                 [[ "${param_string}" =~ ,,--set-upstream,, ]]; then
+        [ $PRINT_TIP -eq 1 ] && echo "stu's git: Already setting the upstream tracking"
         "$orig_git" "$@"
         return
     fi
@@ -375,6 +385,7 @@ git() {
     if [ ${#repo_remotes[@]} -ne 1 ]; then
         # Can't know which remote to use if there are more than one
         # Zero remotes is a bare or broken repository
+        [ $PRINT_TIP -eq 1 ] && echo "stu's git: Multiple remotes available, unable to safely choose which one to use"
         "$orig_git" "$@"
         return
     fi
@@ -386,9 +397,10 @@ git() {
 # deferred to git, which failed the push due to no upstream tracking.
 # For now it looks like checking name.remote is unnecessary, name.merge is
 # sufficient to determine if upsteam tracking is set. Commented out.
-##    branch__remote="$("$orig_git" config branch.${local_branch}.remo0te)"
+##    branch__remote="$("$orig_git" config branch.${local_branch}.remote)"
 ##    if [ -n "$branch__remote" ]; then
 ##        # remote already configured, nothing to do
+##        [ $PRINT_TIP -eq 1 ] && echo "stu's git: Upstream tracking already configured (${local_branch}.remote)"
 ##        "$orig_git" "$@"
 ##        return
 ##    fi
@@ -397,6 +409,7 @@ git() {
     if [ -n "$branch__merge" ]; then
 # Detect a branch rename, and offer to rename the remote?
         # merge already configured, nothing to do
+        [ $PRINT_TIP -eq 1 ] && echo "stu's git: Upstream tracking already configured (${local_branch}.merge)"
         "$orig_git" "$@"
         return
     fi
@@ -405,6 +418,7 @@ git() {
     ret=$?
     if [ $ret != 2 ]; then
         # remote already has a branch of the same name, let git handle things
+        [ $PRINT_TIP -eq 1 ] && echo "stu's git: Remote already has a branch with the same name"
         "$orig_git" "$@"
         return
     fi
@@ -417,6 +431,7 @@ git() {
 
     # Set the tracking
     # TODO: Handle other paramters from original command here
+    [ $PRINT_TIP -eq 1 ] && echo "stu's git: SUCCESS, setting upstream tracking automatically"
     "$orig_git" push --set-upstream "$repo_remote" "$local_branch"
 }
 
