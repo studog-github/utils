@@ -28,6 +28,8 @@ endif
 " .vimrc. I never want that, and 'call' is safer. 'execute' is like eval.
 "call pathogen#infect()
 
+" Debain 8.1 has stupid defaults
+set viminfo='1000
 
 " New on-Windows settings
 syntax on
