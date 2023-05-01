@@ -70,7 +70,11 @@ set encoding=utf8
 " let g:solarized_diffmode="normal"
 " let g:solarized_hitrail=0
 " let g:solarized_menu=1
-colorscheme solarized
+"colorscheme solarized
+
+" Selenized
+set termguicolors
+colorscheme selenized
 
 " Select the correct shell variant for syntax highlighting
 let g:is_bash = 1
