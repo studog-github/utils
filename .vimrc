@@ -93,6 +93,7 @@ autocmd FileType * setlocal formatoptions-=o
 
 autocmd Filetype python setlocal expandtab shiftwidth=4 smarttab
 autocmd Filetype c setlocal expandtab shiftwidth=4 smarttab
+autocmd Filetype yaml setlocal expandtab shiftwidth=2 smarttab
 autocmd Filetype po setlocal encoding=utf-8
 
 " Only works when it's a bare variable; inside an autogroup it gets set too late and c syntax
