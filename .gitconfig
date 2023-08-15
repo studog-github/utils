@@ -116,6 +116,13 @@
               }; f"
         rflg = "!git reflog --date=default"
 
+# git br -d .  --  Checks out master/main/ then deletes the branch you were just on
+# master/main isn't special, so will have to be determined via heuristic
+# reflog doesn't keep history infinitely
+# The first branch might have been deleted
+# The repo could be a partial clone, missing history anyway
+# So... guess? I guess?
+
 # git config credential.helper 'cache --timeout=36000'
 # git credential-cache exit
 
