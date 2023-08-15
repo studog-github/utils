@@ -602,6 +602,9 @@ mtp() {
 # Bash parsing arguments
 # https://stackoverflow.com/a/14203146/1352761
 
+# Use parallel-ssh with a sudo command
+# read -s -p "Password: "; echo "$REPLY" | pssh --send-input -x '-tt' --inline --host " host1 host2 " " sudo ls -alF "
+
 if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
