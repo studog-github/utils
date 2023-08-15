@@ -554,6 +554,39 @@ btprofile() {
     pactl set-card-profile "${btcard}" "${profile}"
 }
 
+mtp() {
+    local op="${1,,}"
+
+    local sys_file="/sys/bus/usb/drivers_autoprobe"
+
+    # Get sudo password if required
+    sudo -v -S
+
+    case "$op" in
+        on)
+            echo 1 | sudo tee "$sys_file"
+            ;;
+        off)
+            echo 0 | sudo tee "$sys_file"
+            ;;
+        '')
+            cat "$sys_file"
+            ;;
+        -h|--help)
+            echo "mtp [-h|--help] [on|off]"
+            echo
+            echo "NOTE: This utility requires sudo, which may prompt for credentials"
+            echo
+            echo "Turn MTP probing of USB devices on or off"
+            echo "With no arguments, display the current state"
+            ;;
+        *)
+            echo "ERROR: Unknown argument '$1'"
+            return 1
+            ;;
+    esac
+}
+
 #sgrep() {
     # Saving grep, save results for later reuse
     # Add and handle --save-file
