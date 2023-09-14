@@ -118,6 +118,10 @@ trim() {
    echo -n "$var"
 }
 
+# Function / something for making case insensitive ls
+###ils() {
+###}
+
 javad() {
    if [ -z "$1" ]; then
       echo "Error: Missing jar file"
