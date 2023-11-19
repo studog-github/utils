@@ -152,10 +152,10 @@ function DiffW()
   silent execute "!diff -a --binary " . opt . v:fname_in . " " . v:fname_new .  " > " . v:fname_out
 endfunction
 
-" Always be last, source local vim if exists
-silent! source .vimlocal
-
 " From https://gist.github.com/atripes/15372281209daf5678cded1d410e6c16
 " URL encode/decode selection
 " vnoremap <leader>en :!python -c 'import sys,urllib;print urllib.quote(sys.stdin.read().strip())'<cr>
 " vnoremap <leader>de :!python -c 'import sys,urllib;print urllib.unquote(sys.stdin.read().strip())'<cr>
+
+" Always be last, source local vim if exists
+silent! source .vimlocal
