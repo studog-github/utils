@@ -126,6 +126,16 @@ augroup Binary
   autocmd BufWritePost *.bin,*.out,xterm set nomod | endif
 augroup END
 
+" From https://vi.stackexchange.com/a/270
+" and https://unix.stackexchange.com/a/39995
+" TODO: Check that the regex for the shebang covers all cases
+augroup AutoExecNewScript
+  autocmd!
+  autocmd BufWritePre * if !filereadable(expand('%')) | let b:is_new = 1 | endif
+  " system() doesn't check for file modification on return to vim; supresses the W16 issued when !chmod '%'
+  autocmd BufWritePost * if get(b:, 'is_new', 0) && getline(1) =~ "^#!" | call system('chmod a+x ' . expand('%')) | let b:is_new = 0 | endif
+augroup END
+
 function! s:DiffWithOrig()
   let l:ft = &filetype
   diffthis
