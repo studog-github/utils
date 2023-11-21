@@ -95,6 +95,7 @@
 	retag = "update-ref --create-reflog refs/tags"
 # git update-ref refs/tags/NAME KEY
         us = unsaved
+        # The tags dry run will fail when permissions are incorrect; what to do when that occurs?
         unsaved = "!f() {  \
                     echo '=====[ Unpushed commits ]==================================================';  \
                     git branch -v;  \
