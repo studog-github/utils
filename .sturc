@@ -611,10 +611,11 @@ mtp() {
 # Use parallel-ssh with a sudo command
 # read -s -p "Password: "; echo "$REPLY" | pssh --send-input -x '-tt' --inline --host " host1 host2 " " sudo ls -alF "
 
-if [ -f ~/.stulocalrc ]; then
-    . ~/.stulocalrc
-fi
 
 # Remap UID/GIDs on a mounted device
 # Takes up two mount points, c'est la vie
 # sudo bindfs --map=1000/1001:@1000/@1001 /media/smacdonald/data3-ssd /mnt/data3
+
+if [ -f ~/.stulocalrc ]; then
+    . ~/.stulocalrc
+fi
