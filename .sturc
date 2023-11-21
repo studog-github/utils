@@ -611,6 +611,8 @@ mtp() {
 # Use parallel-ssh with a sudo command
 # read -s -p "Password: "; echo "$REPLY" | pssh --send-input -x '-tt' --inline --host " host1 host2 " " sudo ls -alF "
 
+# Repeat string in bash script
+# https://stackoverflow.com/a/5349842/1352761
 
 # Remap UID/GIDs on a mounted device
 # Takes up two mount points, c'est la vie
