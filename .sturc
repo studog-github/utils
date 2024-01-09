@@ -545,7 +545,7 @@ btprofile() {
             profile="a2dp_sink"
             ;;
         hfp)
-            profile="headset_head_unit"
+            profile="handsfree_head_unit"
             ;;
         '')
 #        ''|swap)
