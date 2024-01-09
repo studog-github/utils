@@ -1,2 +1,10 @@
-altscreen
+altscreen on
 defscrollback 100000
+startup_message off
+vbell off
+hardstatus alwayslastline
+hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B} %d/%m %{W}%c %{g}]'
+##hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{=kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B}%Y-%m-%d %{W}%c %{g}]%{w} %l'
+# Allow scrollwheel to scroll back the terminal output rather than forwarding it
+# to the process (e.g. scroll through bash history or vim output).
+termcapinfo xterm ti@:te@
