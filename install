@@ -11,7 +11,7 @@ create_link() {
     SRC="$1"
     DST="$2"
 
-    if [ ! -L "$DST" ]; then
+    if [[ ! -L "$DST"/"$SRC" ]]; then
         ln -s "$(readlink --canonicalize "$SRC")" "$DST"
     fi
 }
