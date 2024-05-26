@@ -72,9 +72,12 @@ set encoding=utf8
 " let g:solarized_menu=1
 "colorscheme solarized
 
-" Selenized
 set termguicolors
-colorscheme selenized
+" Selenized
+try
+    colorscheme selenized
+    catch
+endtry
 
 " Select the correct shell variant for syntax highlighting
 let g:is_bash = 1
