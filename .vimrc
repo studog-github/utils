@@ -170,5 +170,11 @@ endfunction
 " vnoremap <leader>en :!python -c 'import sys,urllib;print urllib.quote(sys.stdin.read().strip())'<cr>
 " vnoremap <leader>de :!python -c 'import sys,urllib;print urllib.unquote(sys.stdin.read().strip())'<cr>
 
+" Format XML
+function FormatXML()
+  execute "%!xmllint --format /dev/stdin"
+endfunction
+command! FormatXML call FormatXML()
+
 " Always be last, source local vim if exists
 silent! source .vimlocal
