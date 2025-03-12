@@ -28,3 +28,5 @@ if [[ ! -f /etc/sudoers.d/sudoers_stu ]]; then
     sudo chown root:root /etc/sudoers.d/sudoers_stu
     sudo chmod 440 /etc/sudoers.d/sudoers_stu
 fi
+
+create_link cktree $HOME/bin
