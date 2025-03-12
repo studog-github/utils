@@ -706,7 +706,7 @@ zip_ods() {
 
     # mimetype _must_ be first and _must_ be stored not compressed
     zip -0qX "${filename}" mimetype
-    # the rest are in order based on examining an soffice(Calc)-created ODS using 'unzip -v <filename>'
+    # the rest are in order based on examining soffice(Calc)-created ODSes using 'unzip -v <filename>'
     # THIS LIST MAY BE INCOMPLETE
     zip -DqrX "${filename}" Basic/ settings.xml
     # Configurations2/ empty directories are stored...  not sure why; other empty directories are NOT stored
