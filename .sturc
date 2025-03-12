@@ -663,6 +663,34 @@ if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
 
+unzip_ods() {
+    local filename="${1}"
+    if [[ -z "${filename}" ]]; then
+        echo "ERROR: Required parameter <filename> missing"
+        return 1
+    fi
+
+    local dirname="${filename}.dir"
+    if [[ -e "${dirname}" ]]; then
+        echo "ERROR: '${dirname}' exists, not overwriting"
+        return 2
+    fi
+
+    mkdir "${dirname}"
+    cd "${dirname}"
+    unzip "../${filename}"
+
+    # ODS tends to store XXML files as a single line :-(
+    for f in *.xml; do
+        local name="${f%.*}"
+        local extension="${f##*.}"
+        local bakfilename="${name}-bak.${extension}"
+
+        cp -pr "${f}" "${bakfilename}"
+        xmllint --format "${bakfilename}" > "${f}"
+    done
+}
+
 zip_ods() {
     local filename="${1}"
 
