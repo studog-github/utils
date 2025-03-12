@@ -687,3 +687,20 @@ zip_ods() {
 
     unzip -v "${filename}"
 }
+
+bak() {
+    local filename="${1}"
+    local name="${filename%.*}"
+    local extension="${filename##*.}"
+    local bakfilename="${name}-bak.${extension}"
+
+    if [[ -e "${bakfilename}" ]]; then
+        echo "ERROR: '${bakfilename}' exists, not overwriting"
+        return 1
+    fi
+
+    cp -pr "${filename}" "${bakfilename}"
+    # ls individually to guarantee the backed up file is second
+    ls -alF "${filename}"
+    ls -alF "${bakfilename}"
+}
