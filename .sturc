@@ -726,13 +726,17 @@ zip_ods() {
 
 bak() {
     local filename="${1}"
+    if [[ -z "${filename}" ]]; then
+        echo "ERROR: Required parameter <filename> missing"
+        return 1
+    fi
+
     local name="${filename%.*}"
     local extension="${filename##*.}"
     local bakfilename="${name}-bak.${extension}"
-
     if [[ -e "${bakfilename}" ]]; then
         echo "ERROR: '${bakfilename}' exists, not overwriting"
-        return 1
+        return 2
     fi
 
     cp -pr "${filename}" "${bakfilename}"
