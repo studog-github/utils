@@ -662,3 +662,28 @@ dump_mint_versions() {
 if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
+
+zip_ods() {
+    local filename="${1}"
+
+    # -9 can be used for better compression, soffice appears to handle that fine. Currently unused out of an abundance of caution
+
+    # mimetype _must_ be first and _must_ be stored not compressed
+    zip -0qX "${filename}" mimetype
+    # the rest are in order based on examining an soffice(Calc)-created ODS using 'unzip -v <filename>'
+    # THIS LIST MAY BE INCOMPLETE
+    zip -DqrX "${filename}" Basic/ settings.xml
+    # Configurations2/ empty directories are stored...  not sure why; other empty directories are NOT stored
+    # ordering within Configurations2/ changes from ODS to ODS, so don't worry about the order
+    zip -DqrX "${filename}" $(find Configurations2 -type f)
+    zip -0qX "${filename}" $(find Configurations2 -type d -empty)
+    zip -DqrX "${filename}" Scripts/ styles.xml manifest.rdf content.xml meta.xml Thumbnails/ META-INF/
+
+    echo "===================================================================================================="
+    echo "WARNING: This is a hand-rolled solution and may be incomplete"
+    echo "         Please verify against the original ODS file where possible"
+    echo "===================================================================================================="
+    echo
+
+    unzip -v "${filename}"
+}
