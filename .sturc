@@ -693,6 +693,14 @@ unzip_ods() {
 
 zip_ods() {
     local filename="${1}"
+    if [[ -z "${filename}" ]]; then
+        echo "ERROR: Required parameter <filename> missing"
+        return 1
+    fi
+    if [[ -e "${filename}" ]]; then
+        echo "ERROR: '${filename}' exists, not overwriting"
+        return 2
+    fi
 
     # -9 can be used for better compression, soffice appears to handle that fine. Currently unused out of an abundance of caution
 
