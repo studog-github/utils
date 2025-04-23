@@ -741,6 +741,19 @@ bak() {
     ls -alF "${bakfilename}"
 }
 
+# From Git For Windows
+# /c/Program\ Files/Git/etc/profile.d/git-prompt.sh =>
+# /mingw64/share/git/completion/git-completion.bash
+# /mingw64/share/git/completion/git-prompt.sh
+#export GIT_PS1_SHOWDIRTYSTATE=1           # unstaged (*), staged (+); bash.showDirtyState
+#export GIT_PS1_SHOWSTASHSTATE=1           # stashed ($)
+#export GIT_PS1_SHOWUNTRACKEDFILES=1       # untracked (%); bash.showUntrackedFiles
+#export GIT_PS1_SHOWUPSTREAM="auto"        # behind (<), ahead (>), diverged (<>), no difference (=); bash.showUpstream; FURTHER OPTS
+#export GIT_PS1_STATESEPARATOR=" "         # For SHOWUPSTREAM, space is default
+#export GIT_PS1_SHOWCONFLICTSTATE="yes"    # Show notification about in-progress conflicts
+#export GIT_PS1_DESCRIBE_STYLE="contains"  # contains, branch, describe, tag, default; see git-prompt.sh
+#export GIT_PS1_SHOWCOLORHINTS=1           # dirty state
+
 if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
