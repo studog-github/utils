@@ -41,7 +41,7 @@
 #               }; f"
         # br does not show detached head when that's what's checked out
         # Compare with branch
-	br = "!f() {  \
+	br = "!f() { : branch; \
                   if [ -z \"$1\" ] || [ \"$1\" = \"-v\" ] || [ \"$1\" = \"-vv\" ]; then  \
                       width=$(git for-each-ref --format='%(refname:lstrip=2)' refs/heads | wc -L);  \
                       if [ \"$1\" = \"-v\" ]; then  \
