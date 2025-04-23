@@ -659,10 +659,6 @@ dump_mint_versions() {
     echo
 }
 
-if [ -f ~/.stulocalrc ]; then
-    . ~/.stulocalrc
-fi
-
 unzip_ods() {
     local filename="${1}"
     if [[ -z "${filename}" ]]; then
@@ -744,3 +740,7 @@ bak() {
     ls -alF "${filename}"
     ls -alF "${bakfilename}"
 }
+
+if [ -f ~/.stulocalrc ]; then
+    . ~/.stulocalrc
+fi
