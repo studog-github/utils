@@ -7,6 +7,12 @@ THIS_PATH="$(readlink --canonicalize ${0%/*})"
 # 1. Maybe should install relative paths in the links?
 # 2. One script to install/uninstall
 
+# OSTYPE values:
+# cygwin - Cygwin on Windows
+# msys - MSYS on Windows (from Git for Windows' Git Bash)
+# Git Bash elevated shell + "export MSYS=winsymlinks:nativestrict"; see some stackoverflow answers
+# Git Bash elevated shell appears to have "__COMPAT_LAYER=HighDpiAware Installer" as the only clue, specifically the "Installer" part
+
 create_link() {
     SRC="$1"
     DST="$2"
@@ -21,12 +27,14 @@ create_link .gitconfig $HOME
 create_link .gitconfig-personal $HOME
 create_link .vimrc $HOME
 
-if [[ ! -f /etc/sudoers.d/sudoers_stu ]]; then
-    sudo --validate --prompt "Installing 'sudoers_stu' requires [sudo] password for %u: "
-    # sudoers has to be root:root 440 so copy it instead of linking
-    sudo cp sudoers_stu /etc/sudoers.d/
-    sudo chown root:root /etc/sudoers.d/sudoers_stu
-    sudo chmod 440 /etc/sudoers.d/sudoers_stu
-fi
+# /etc doesn't exist on Git Bash for Windows environments
+###if [[ ! -f /etc/sudoers.d/sudoers_stu ]]; then
+###    sudo --validate --prompt "Installing 'sudoers_stu' requires [sudo] password for %u: "
+###    # sudoers has to be root:root 440 so copy it instead of linking
+###    sudo cp sudoers_stu /etc/sudoers.d/
+###    sudo chown root:root /etc/sudoers.d/sudoers_stu
+###    sudo chmod 440 /etc/sudoers.d/sudoers_stu
+###fi
 
+# Need to make ~/bin if it doesn't exist
 create_link cktree $HOME/bin
