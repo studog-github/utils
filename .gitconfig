@@ -21,8 +21,8 @@
 	path = ~/.gitconfig-personal
 
 [core]
-	autocrlf = input
-	safecrlf = true
+	autocrlf = input    # Normailze to LF in git's object database
+	safecrlf = true     # Fail the operation if git thinks it's not reversible
 	editor = vim
 [alias]
 	co = checkout
