@@ -3,7 +3,7 @@
 # in repo aka --local: .git/config
 
 # Prefer settings based on organization
-# includeIf requires v2.13+
+# includeIf requires git v2.13+
 
 # Default settings
 [user]
