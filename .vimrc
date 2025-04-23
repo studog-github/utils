@@ -112,6 +112,7 @@ autocmd BufNewFile,BufRead *.gs set ft=javascript
 autocmd BufNewFile,BufRead *.xxd set ft=xxd
 autocmd BufNewFile,BufRead syslog{,.[0-9]*,-[0-9]*} set ft=messages
 autocmd BufNewFile,BufRead syslog set ft=messages
+autocmd BufNewFile,BufRead .gitconfig-* set ft=gitconfig
 
 " Ubuntu turned off file position, globally; turn it back on
 " Affected: 14.04 16.04 18.04
