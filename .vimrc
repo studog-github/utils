@@ -14,17 +14,6 @@ if filereadable(expand('$VIMRUNTIME/defaults.vim'))
     source $VIMRUNTIME/defaults.vim
 endif
 
-" Pathogen for now, Vim 8.0 native management later
-
-" To disable a plugin, add its bundle name to the following list
-"let g:pathogen_disabled = []
-"call add(g:pathogen_disabled, 'conflict-marker.vim')
-"call add(g:pathogen_disabled, 'vim-fugitive')
-
-" The only reason to 'execute' instead of 'call' is so pathogen can disable your
-" .vimrc. I never want that, and 'call' is safer. 'execute' is like eval.
-"call pathogen#infect()
-
 " Debian 8.1 has sub-optimal defaults
 set viminfo='1000
 
