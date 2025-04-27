@@ -158,3 +158,6 @@
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
 	required = true
+[color]
+	# From Git For Windows
+	ui = auto
