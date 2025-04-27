@@ -53,7 +53,7 @@ for word in word_list(DEFAULT_WORD_LIST_PATH):
     word_letters = set(word)
     if required_letter not in word_letters:
         continue
-    if word_letters > letters:
+    if not word_letters.issubset(letters):
         continue
     word_count += 1
     if len(word_letters) == 7:
