@@ -754,6 +754,8 @@ bak() {
 #export GIT_PS1_DESCRIBE_STYLE="contains"  # contains, branch, describe, tag, default; see git-prompt.sh
 #export GIT_PS1_SHOWCOLORHINTS=1           # dirty state
 
+# sudo cat /sys/kernel/debug/dri/1/amdgpu_pm_info
+
 if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
