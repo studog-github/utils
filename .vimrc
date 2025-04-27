@@ -1,5 +1,4 @@
 " TODO:
-" ( ) protect the solarized colorscheme line against missing solarized
 
 " Vim 8 includes a new defaults file so users without their own .vimrc can get
 " sensible defaults. Sounds nice, but using it is skipped when they do have a
@@ -20,7 +19,6 @@ endif
 " To disable a plugin, add its bundle name to the following list
 "let g:pathogen_disabled = []
 "call add(g:pathogen_disabled, 'conflict-marker.vim')
-"call add(g:pathogen_disabled, 'vim-colors-solarized')
 "call add(g:pathogen_disabled, 'vim-fugitive')
 
 " The only reason to 'execute' instead of 'call' is so pathogen can disable your
@@ -56,20 +54,6 @@ nnoremap <silent> <leader><space> :noh<cr>
 set formatoptions+=j
 set encoding=utf8
 "set fileencodings+=utf8,latin1
-
-" Solarized default values, don't recall why I have them listed out
-" let g:solarized_termtrans=0
-" let g:solarized_degrade=0
-" let g:solarized_bold=1
-" let g:solarized_underline=1
-" let g:solarized_italic=1
-" let g:solarized_termcolors=16
-" let g:solarized_contrast="normal"
-" let g:solarized_visibility="normal"
-" let g:solarized_diffmode="normal"
-" let g:solarized_hitrail=0
-" let g:solarized_menu=1
-"colorscheme solarized
 
 set termguicolors
 " Selenized
