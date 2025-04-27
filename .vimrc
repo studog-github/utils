@@ -1,5 +1,4 @@
 " TODO:
-" ( ) Debug "no matching autocommands" when doing ':w' from ':Gdiff' window
 " ( ) protect the solarized colorscheme line against missing solarized
 
 " Vim 8 includes a new defaults file so users without their own .vimrc can get
