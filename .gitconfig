@@ -6,11 +6,14 @@
 # includeIf requires git v2.13+
 
 # Default settings
+# Block these items so an incorrect configuration isn't accidentally used, which can be difficult to
+# recover from, and a potential security leak
+# NOTE: These empty items can generate _cryptic_ error messages, especially sshcommand
 [user]
 	name =
 	email =
 [core]
-	sshCommand = ""
+	sshcommand = ""
 
 # Override with work settings when needed
 [includeIf "gitdir:~/work/"]
