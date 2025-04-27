@@ -10,6 +10,8 @@ THIS_PATH="$(readlink --canonicalize ${0%/*})"
 # OSTYPE values:
 # cygwin - Cygwin on Windows
 # msys - MSYS on Windows (from Git for Windows' Git Bash)
+# linux-gnu - Linux Mint 22.1
+
 # Git Bash elevated shell + "export MSYS=winsymlinks:nativestrict"; see some stackoverflow answers
 # Git Bash elevated shell appears to have "__COMPAT_LAYER=HighDpiAware Installer" as the only clue, specifically the "Installer" part
 
