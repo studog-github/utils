@@ -22,6 +22,10 @@
 # Override with personal settings when needed
 [includeIf "gitdir:~/personal/"]
 	path = ~/.gitconfig-personal
+[includeIf "gitdir:/disks/lysanderII/home/stuart/personal/"]  # Old hard drive
+	path = ~/.gitconfig-personal
+[includeIf "gitdir:/disks/Data_1/"]
+	path = ~/.gitconfig-personal
 
 [core]
 	autocrlf = input    # Normailze to LF in git's object database
