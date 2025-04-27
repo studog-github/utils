@@ -90,6 +90,10 @@ autocmd BufNewFile,BufRead .gitconfig-* set ft=gitconfig
 " Affected: 14.04 16.04 18.04
 autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 
+" Where <clap> the <clap> hell <clap> has <clap> this <clap> been <clap> for <clap> 30 <clap> years??
+" Thanks to Tim Pope: https://hachyderm.io/@tpope/109784416506853805
+autocmd VimResized * wincmd =
+
 " vim -b : edit binary using xxd-format!
 augroup Binary
   autocmd!
