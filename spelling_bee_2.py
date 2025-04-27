@@ -10,9 +10,10 @@ from more_itertools import distinct_permutations
 THIS = os.path.basename(__file__)
 THIS_VERSION = "0.1"
 
-DEFAULT_WORD_LIST_PATH = '/usr/share/dict/words'
+#DEFAULT_WORD_LIST_PATH = '/usr/share/dict/words'
 #DEFAULT_WORD_LIST_PATH = '/home/smacdonald/Downloads/english.txt'
 #DEFAULT_WORD_LIST_PATH = '/home/smacdonald/Downloads/sowpods.txt'
+DEFAULT_WORD_LIST_PATH = '/home/stuart/personal/word_lists/sowpods2.txt'
 MIN_WORD_LENGTH = 4
 MAX_WORD_LENGTH = 11
 
