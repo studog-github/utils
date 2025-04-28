@@ -103,6 +103,7 @@
 # git update-ref refs/tags/NAME KEY
         us = unsaved
         # The tags dry run will fail when permissions are incorrect; what to do when that occurs?
+        # This includes when you've cloned a repo via https public access
         unsaved = "!f() {  \
                     echo '=====[ Unpushed commits ]==================================================';  \
                     git branch -v;  \
