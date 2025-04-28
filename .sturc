@@ -79,8 +79,6 @@ function man() {
         GROFF_NO_SGR=1 \
     man "$@"
 }
-# Removed the path alterations for now, as I don't see the use, and it creates a security problem
-#        PATH=${HOME}/bin:${PATH} \
 
 alias d='ls -aCF'
 alias dir='ls -alF'
