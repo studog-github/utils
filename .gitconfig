@@ -162,3 +162,16 @@
 [color]
 	# From Git For Windows
 	ui = auto
+# The reflog knows where the branch started, by way of having recorded the first time the branch moved its HEAD.
+# This could be leveraged to determine the start of the branch, but has at least one corner case of multiple
+# branches through time having the same branch name.
+# Also, the default size of the history is only 90 days, which isn't nearly long enough.
+# Saw a post about tagging the start of your branch to make things easier, which could work, but you'd want to
+# avoid pushing those tags.
+# What happens when B is cut from A which is cut from main, and then A is deleted, and then B is rebased onto
+# A (or main)? I guess that rebase counts all of A and B onto main, and will refuse to rebase B onto A because
+# A is gone.
+#
+# Side note: gitrevisions is the man page for all the various ref syntax.
+[gc]
+    reflogExpire = 1000
