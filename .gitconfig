@@ -124,6 +124,7 @@
                $(command -v gnumfmt || echo numfmt) --field=2 --to=iec-i --suffix=B --padding=7 --round=nearest;  \
               }; f"
         rflg = "!git reflog --date=default"
+        lsm = "!git ls-files --stage | grep -P '(?<=^.)6'"
 
 # git br -d .  --  Checks out master/main/ then deletes the branch you were just on
 # master/main isn't special, so will have to be determined via heuristic
