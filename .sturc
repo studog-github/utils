@@ -754,6 +754,8 @@ bak() {
 
 # sudo cat /sys/kernel/debug/dri/1/amdgpu_pm_info
 
+# https://superuser.com/questions/452034/bash-colorized-man-page
+
 if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
