@@ -124,7 +124,7 @@
                $(command -v gnumfmt || echo numfmt) --field=2 --to=iec-i --suffix=B --padding=7 --round=nearest;  \
               }; f"
         rflg = "reflog --date=default"
-        lsm = "ls-files --stage | grep -P '(?<=^.)6'"
+        lsm = "!git ls-files --stage | grep -P '(?<=^.)6'"
         smu = "submodule update --init --recursive"
 
 # git br -d .  --  Checks out master/main/ then deletes the branch you were just on
