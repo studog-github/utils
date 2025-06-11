@@ -39,7 +39,7 @@
 	cp = cherry-pick -x
 	k = log --graph --abbrev-commit --pretty=oneline --decorate
 	difft = difftool
-	root = "!git rev-parse --show-toplevel"
+	root = "rev-parse --show-toplevel"
 # Oldest common ancestor, useful when bisecting
 #	oca = "!f() {  \
 #                   b1 =   \
@@ -123,8 +123,8 @@
                cut -c 1-12,41- |  \
                $(command -v gnumfmt || echo numfmt) --field=2 --to=iec-i --suffix=B --padding=7 --round=nearest;  \
               }; f"
-        rflg = "!git reflog --date=default"
-        lsm = "!git ls-files --stage | grep -P '(?<=^.)6'"
+        rflg = "reflog --date=default"
+        lsm = "ls-files --stage | grep -P '(?<=^.)6'"
         smu = "submodule update --init --recursive"
 
 # git br -d .  --  Checks out master/main/ then deletes the branch you were just on
