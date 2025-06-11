@@ -125,6 +125,7 @@
               }; f"
         rflg = "!git reflog --date=default"
         lsm = "!git ls-files --stage | grep -P '(?<=^.)6'"
+        smu = "submodule update --init --recursive"
 
 # git br -d .  --  Checks out master/main/ then deletes the branch you were just on
 # master/main isn't special, so will have to be determined via heuristic
