@@ -44,6 +44,9 @@ set formatoptions+=j
 set encoding=utf8
 "set fileencodings+=utf8,latin1
 
+" For Git For Windows's bash terminal; allow selections but don't start visual mode
+set mouse-=a
+
 set termguicolors
 " Selenized
 try
