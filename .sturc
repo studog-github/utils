@@ -220,6 +220,9 @@ gccwarns() {
 gccmacros() {
    gcc -dM -E - < /dev/null
 }
+gccstds() {
+   gcc -v --help 2>/dev/null | grep "^  -std"
+}
 
 start_routing() {
    ipfw_enabled=$(sudo cat /proc/sys/net/ipv4/ip_forward)
