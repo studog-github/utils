@@ -104,6 +104,8 @@
         us = unsaved
         # The tags dry run will fail when permissions are incorrect; what to do when that occurs?
         # This includes when you've cloned a repo via https public access
+        # Update https://stackoverflow.com/questions/65615133/how-to-comprehensively-check-for-unsaved-work
+        # when I've figured this out
         unsaved = "!f() {  \
                     echo '=====[ Unpushed commits ]==================================================';  \
                     git branch -v;  \
