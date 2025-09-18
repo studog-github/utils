@@ -101,6 +101,9 @@ alias tree='/usr/bin/tree -a'
 alias chromenw='/opt/google/chrome/chrome --new-window'
 alias bravenw='/usr/bin/brave-browser --new-window'
 alias chromedt='/opt/google/chrome/chrome --auto-open-devtools-for-tabs'
+function edgenw() {
+    start msedge -new-window "$(abspath "$1")"
+}
 alias eognw='eog --new-instance'
 alias curldl='curl -OJL'
 alias studio='studio.sh'
