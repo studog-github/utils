@@ -762,6 +762,10 @@ bak() {
 
 # https://superuser.com/questions/452034/bash-colorized-man-page
 
+# Add to normal rc? Need Windows gating though
+# This is required for allowing 'sudo ln -s ...' to work
+#export MSYS=winsymlinks:nativestrict
+
 if [ -f ~/.stulocalrc ]; then
     . ~/.stulocalrc
 fi
