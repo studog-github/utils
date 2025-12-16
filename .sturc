@@ -379,6 +379,11 @@ sudof() {
 # configured but will be behind the builtin commands in execution priority so
 # will never run.
 #
+
+# This interferred with a mirror-push so needs some kind of update
+# git push is ambiguous between a mirror-push and a push for the current branch...  on the command line
+# A mirror push won't have any branches at all in the config, so that's how to disambiguate
+
 git() {
     local orig_git="$(which git)"
     local param_string
@@ -391,6 +396,9 @@ git() {
 
     # Check if Stu needs to know what went wrong
     # -v not currently in use by bare-git
+    # UPDATE: Git for Windows uses '-v' to print the version number
+    # UPDATE: git 2.43.0 on Ubuntu? also uses '-v'
+    # Change my verbose flag to something else _sigh_
     if [ "$1" == "-v" ]; then
         local PRINT_TIP=1
         shift
