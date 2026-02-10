@@ -29,9 +29,9 @@ def word_list(path):
                 continue
             yield word.lower()
 
-def load_word_list(path):
-    with open(path, 'r') as file:
-        return set(re.sub('[^\w]', ' ', file.read()).split())
+#def load_word_list(path):
+#    with open(path, 'r') as file:
+#        return set(re.sub('[^\w]', ' ', file.read()).split())
 
 arg_parser = argparse.ArgumentParser(prog=THIS, description='Spelling Bee solver')
 arg_parser.add_argument('letters', type=str, help='Spelling Bee letter set, required letter first, must not have repeats')
