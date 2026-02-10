@@ -25,13 +25,13 @@ def word_list(path):
                 break
             if len(word) < MIN_WORD_LENGTH:
                 continue
-            if re.search('[^\w]', word):
+            if re.search(r'[^\w]', word):
                 continue
             yield word.lower()
 
 #def load_word_list(path):
 #    with open(path, 'r') as file:
-#        return set(re.sub('[^\w]', ' ', file.read()).split())
+#        return set(re.sub(r'[^\w]', ' ', file.read()).split())
 
 arg_parser = argparse.ArgumentParser(prog=THIS, description='Spelling Bee solver')
 arg_parser.add_argument('letters', type=str, help='Spelling Bee letter set, required letter first, must not have repeats')
