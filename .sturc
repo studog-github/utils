@@ -5,6 +5,14 @@
 # bash sets history state immediately when HISTSIZE et al are set. Therefore it
 # is not sufficient to override these variables, you must comment out previous
 # occurrences of them.
+#
+# DOUBLE WARNING!
+# In fact, previous instances of setting these variables must be replaced by this set below, to guard against
+# accidental failure. Just now, something deleted the symbolic link pointing at this file, which left the defaults
+# active (in this specific case there was no setup, so bash used its internal defaults; turns out 500 commands is less
+# than a week's worth :-()
+# Push these up the initialization chain as far as is reasonably possible.
+#
 # What was happening was on boot .bashrc would set the defaults, immediately
 # configure the state including truncating the .bash_history file to the default
 # size, then use my new history values. This effectively meant I wasn't getting
