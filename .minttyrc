@@ -1,0 +1,15 @@
+# See https://mintty.github.io/mintty.1.html
+
+Font=Liberation Mono
+ThemeFile=/c/Users/smacdonald/personal/selenized/terminals/mintty/selenized-dark.minttyrc
+CursorType=block
+RewrapOnResize=yes
+ScrollbackLines=100000
+Columns=160
+Rows=50
+# No idea why this didn't work:
+#KeyFunctions=CS+N:new-window-cwd;
+#ShootFoot=on
+# but this did (from https://stackoverflow.com/a/70948206/1352761 )
+# Set Ctrl+Shift+n to start a new window at the same path, a la gnome-terminal
+KeyFunctions=n:new-window-cwd;
