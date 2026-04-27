@@ -1,3 +1,6 @@
 $include /etc/inputrc
 
 set revert-all-at-newline on
+
+# Turn off the visual bell
+set bell-style none
