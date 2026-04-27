@@ -17,6 +17,9 @@ endif
 " Debian 8.1 has sub-optimal defaults
 set viminfo='1000
 
+" Turn off the visual bell
+set t_vb=
+
 " New on-Windows settings
 syntax on
 set softtabstop=-1
