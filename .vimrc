@@ -26,6 +26,8 @@ set softtabstop=-1
 set shiftwidth=4
 set expandtab
 set noautoindent
+" Git for Windows' bash has a bad default of clipboard=unnamed
+set clipboard=
 
 set modeline
 set background=dark
@@ -44,8 +46,9 @@ set wildmenu
 let mapleader="\\"
 nnoremap <silent> <leader><space> :noh<cr>
 set formatoptions+=j
-set encoding=utf8
+"set encoding=utf8
 "set fileencodings+=utf8,latin1
+set fileencodings+=ucs-2le
 
 " For Git For Windows's bash terminal; allow selections but don't start visual mode
 set mouse-=a
