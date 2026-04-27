@@ -102,7 +102,11 @@ alias cls='clear'
 alias spath='echo $PATH | tr : "\n"'
 alias abspath='readlink -f'
 alias svim='sudo vim'
-alias gitk='gitk --all &'
+# Consider moving these to .gitconfig
+function gitk() {
+  /mingw64/bin/gitk "$@" &
+}
+alias gitka='gitk --all'
 alias gitr='cd $(git root)'
 alias tree='/usr/bin/tree -a'
 # --use-gl=osmesa is a workaround to prevent Chrome 68 from spamming syslog with
