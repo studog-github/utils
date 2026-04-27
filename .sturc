@@ -40,6 +40,11 @@ export HISTTIMEFORMAT="$(tput setaf 6)%F %T$(tput sgr0)  "
 # history search ctrl-s will work
 stty -ixon
 
+# less doesn't use an rc file, just this environment variable; it is command line option letters, no separator, no dash
+# -F - quit when the entire file fits on a single screen
+# -R - enable limited set of raw escape sequences
+export LESS="FR"
+
 ### This is superceded by the .dircolors detection in .bashrc
 ###if [ -n "$DISPLAY" ] && [ "$TERM" == "xterm" ]; then
 ###   export TERM=gnome-256color
