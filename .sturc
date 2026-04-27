@@ -385,14 +385,14 @@ sudof() {
 #   - 'git branch --set-upstream-to' fails because the remote branch doesn't
 #     exist
 #   - 'git config branch.<name>.remote' fails because the branch then shows up
-#     as 'gone', which is accurate but not desired
+#     as 'gone', which is technically accurate but not desired
 #
 # pre-push hook is too late:
 #   - by the time it runs the remote has already been connected to, which means
 #     the branch was already set up correctly...  and if it wasn't then the hook
 #     never runs
 #
-# git does not allow over-riding builtin commands with git aliases. They can be
+# git does not allow overriding builtin commands with git aliases. They can be
 # configured but will be behind the builtin commands in execution priority so
 # will never run.
 #
