@@ -129,6 +129,13 @@
         lsm = "!git ls-files --stage | grep -P '(?<=^.)6'"
         smu = "submodule update --init --recursive"
         deleted-files = "log --diff-filter=D --summary"
+        brdiff = "!f() {  \
+                    if [[ -z \"$1\" ]]; then  \
+                      echo \"Error: Missing parent branch\";  \
+                      return;  \
+                    fi;  \
+                    git diff --merge-base \"$1\";  \
+                    }; f"
 
 # git br -d .  --  Checks out master/main/ then deletes the branch you were just on
 # master/main isn't special, so will have to be determined via heuristic
