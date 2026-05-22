@@ -13,3 +13,4 @@ Rows=50
 # but this did (from https://stackoverflow.com/a/70948206/1352761 )
 # Set Ctrl+Shift+n to start a new window at the same path, a la gnome-terminal
 KeyFunctions=n:new-window-cwd;
+FontHeight=8
